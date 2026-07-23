@@ -10,18 +10,43 @@ except ImportError:  # ADK can still run if env vars are already set.
     load_dotenv = None
 
 
+PACKAGE_DIR = Path(__file__).resolve().parent
+
 if load_dotenv is not None:
+    # Load variables from the package-level .env when present. This keeps the
+    # workflow stable even when adk run/adk web is launched from the parent folder.
+    load_dotenv(PACKAGE_DIR / ".env")
     load_dotenv()
+
+
+def _env_path(name: str, default: Path) -> Path:
+    raw = os.getenv(name)
+    if raw and raw.strip():
+        return Path(raw.strip()).expanduser()
+    return default
 
 
 @dataclass(frozen=True)
 class Settings:
     """Runtime configuration for the Data Analysis Agency."""
 
+    package_dir: Path = PACKAGE_DIR
     provider: str = os.getenv("PROVIDER", "gemini").strip().lower()
     model: str = os.getenv("MODEL", "gemini-flash-latest").strip()
-    data_dir: Path = Path(os.getenv("DATA_DIR", "./data_analysis_agency/data")).expanduser()
-    output_dir: Path = Path(os.getenv("OUTPUT_DIR", "./data_analysis_agency/outputs")).expanduser()
+
+    # Keep defaults anchored to this package folder instead of the shell's current
+    # working directory. This prevents many WSL/Windows path surprises.
+    data_dir: Path = _env_path("DATA_DIR", PACKAGE_DIR / "data")
+    output_dir: Path = _env_path("OUTPUT_DIR", PACKAGE_DIR / "outputs")
+    plot_output_dir: Path = _env_path("PLOT_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "plots")
+    report_output_dir: Path = _env_path("REPORT_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "reports")
+    ggplot2_cases_dir: Path = _env_path(
+        "GGPLOT2_CASES_DIR", PACKAGE_DIR / "r_plot_library" / "ggplot2_cases"
+    )
+    ggplot2_cases_manifest: Path = _env_path(
+        "GGPLOT2_CASES_MANIFEST", PACKAGE_DIR / "plot_manifests" / "ggplot2_cases.json"
+    )
+
     allow_absolute_data_paths: bool = os.getenv(
         "ALLOW_ABSOLUTE_DATA_PATHS", "false"
     ).strip().lower() in {"1", "true", "yes", "y"}
@@ -38,3 +63,5 @@ class Settings:
 settings = Settings()
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.output_dir.mkdir(parents=True, exist_ok=True)
+settings.plot_output_dir.mkdir(parents=True, exist_ok=True)
+settings.report_output_dir.mkdir(parents=True, exist_ok=True)

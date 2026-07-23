@@ -6,9 +6,11 @@ from google.adk.tools.agent_tool import AgentTool
 from .agent_cards import AGENT_CARDS
 from .agents import (
     build_code_planning_agent,
+    build_column_decoder_agent,
     build_data_intake_agent,
     build_eda_agent,
     build_method_research_agent,
+    build_publication_plot_agent,
     build_report_agent,
     build_visualization_agent,
 )
@@ -19,6 +21,8 @@ from .prompts import SUPERVISOR_PROMPT
 data_intake_agent = build_data_intake_agent()
 eda_agent = build_eda_agent()
 visualization_agent = build_visualization_agent()
+column_decoder_agent = build_column_decoder_agent()
+publication_plot_agent = build_publication_plot_agent()
 code_planning_agent = build_code_planning_agent()
 report_agent = build_report_agent()
 method_research_agent = build_method_research_agent()
@@ -35,6 +39,8 @@ root_agent = Agent(
         AgentTool(agent=data_intake_agent),
         AgentTool(agent=eda_agent),
         AgentTool(agent=visualization_agent),
+        AgentTool(agent=column_decoder_agent),
+        AgentTool(agent=publication_plot_agent),
         AgentTool(agent=code_planning_agent),
         AgentTool(agent=report_agent),
         AgentTool(agent=method_research_agent),

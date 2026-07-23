@@ -1,0 +1,857 @@
+{
+  "version": "1.0",
+  "description": "Approved ggplot2 publication-style plot cases available to the Data Analysis Agency.",
+  "notes": [
+    "Only predefined case recipes are allowed for execution.",
+    "Demo plots use simulated data from the copied R case files.",
+    "Real-data plotting is supported only for cases where the plot script expects one tabular data frame. Complex list, graph, matrix, and multi-table cases are demo-only in this starter implementation."
+  ],
+  "cases": [
+    {
+      "case_id": "01-error-dotplot",
+      "title": "Individualized error dot plot",
+      "case_dir": "cases/01-error-dotplot",
+      "figure_files": [
+        "error_dotplot.png"
+      ],
+      "keywords": [
+        "error dotplot",
+        "dot plot",
+        "treatment",
+        "pathway",
+        "mean",
+        "standard deviation"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "treatment",
+        "pathway",
+        "value"
+      ],
+      "optional_columns": [],
+      "column_roles": {
+        "treatment": [
+          "treatment",
+          "Treatment",
+          "condition",
+          "group",
+          "sample_group",
+          "category"
+        ],
+        "pathway": [
+          "pathway",
+          "Pathway",
+          "class",
+          "group_class",
+          "category",
+          "color_group"
+        ],
+        "value": [
+          "value",
+          "Value",
+          "measurement",
+          "response",
+          "phenotype",
+          "score",
+          "trait_value"
+        ]
+      }
+    },
+    {
+      "case_id": "02-grouped-error-dotplot",
+      "title": "Grouped error dot plot",
+      "case_dir": "cases/02-grouped-error-dotplot",
+      "figure_files": [
+        "grouped_error_dotplot.png"
+      ],
+      "keywords": [
+        "grouped dot plot",
+        "error bars",
+        "condition",
+        "siRNA",
+        "grouped treatment"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "cond",
+        "siRNA",
+        "value"
+      ],
+      "optional_columns": [],
+      "column_roles": {
+        "cond": [
+          "cond",
+          "condition",
+          "Condition",
+          "treatment",
+          "timepoint",
+          "time_point",
+          "group"
+        ],
+        "siRNA": [
+          "siRNA",
+          "sirna",
+          "si_rna",
+          "knockdown",
+          "genotype",
+          "group2",
+          "subgroup",
+          "treatment_group"
+        ],
+        "value": [
+          "value",
+          "Value",
+          "measurement",
+          "response",
+          "score",
+          "trait_value"
+        ]
+      }
+    },
+    {
+      "case_id": "03-multigroup-volcano",
+      "title": "Multi-group volcano-style differential signal plot",
+      "case_dir": "cases/03-multigroup-volcano",
+      "figure_files": [
+        "multigroup_volcano.png"
+      ],
+      "keywords": [
+        "volcano",
+        "differential expression",
+        "log2 fold change",
+        "cluster",
+        "gene"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "cluster",
+        "gene",
+        "avg_log2FC"
+      ],
+      "optional_columns": [
+        "type"
+      ],
+      "column_roles": {
+        "cluster": [
+          "cluster",
+          "Cluster",
+          "group",
+          "cell_cluster",
+          "comparison",
+          "contrast"
+        ],
+        "gene": [
+          "gene",
+          "Gene",
+          "gene_id",
+          "gene_name",
+          "symbol",
+          "feature",
+          "feature_id"
+        ],
+        "avg_log2FC": [
+          "avg_log2FC",
+          "avg_log2fc",
+          "log2FC",
+          "log2fc",
+          "log2_fold_change",
+          "log2FoldChange",
+          "avg_logFC",
+          "fold_change_log2"
+        ],
+        "type": [
+          "type",
+          "direction",
+          "regulation",
+          "status",
+          "significance_class"
+        ]
+      }
+    },
+    {
+      "case_id": "04-manhattan-twas",
+      "title": "Manhattan plot for genome-wide signals",
+      "case_dir": "cases/04-manhattan-twas",
+      "figure_files": [
+        "manhattan_twas.png"
+      ],
+      "keywords": [
+        "manhattan",
+        "gwas",
+        "twas",
+        "chromosome",
+        "p value",
+        "genomic position",
+        "bed"
+      ],
+      "real_data_supported": true,
+      "data_object": "twas",
+      "expected_columns": [
+        "CHR",
+        "BP",
+        "P"
+      ],
+      "optional_columns": [
+        "gene"
+      ],
+      "column_roles": {
+        "CHR": [
+          "CHR",
+          "chr",
+          "chrom",
+          "chromosome",
+          "Chromosome",
+          "seqid",
+          "SeqID",
+          "sequence_id"
+        ],
+        "BP": [
+          "BP",
+          "bp",
+          "pos",
+          "position",
+          "Position",
+          "start",
+          "Start",
+          "chromStart",
+          "chrom_start",
+          "begin"
+        ],
+        "P": [
+          "P",
+          "p",
+          "pvalue",
+          "p_value",
+          "p.val",
+          "pval",
+          "p.value",
+          "PValue",
+          "P_VALUE"
+        ],
+        "gene": [
+          "gene",
+          "Gene",
+          "gene_id",
+          "gene_name",
+          "name",
+          "Name",
+          "feature",
+          "feature_id"
+        ]
+      },
+      "bed_notes": "BED files can be inspected and summarized. To make this Manhattan plot from BED data, the file must include or be paired with a p-value-like column that can map to P."
+    },
+    {
+      "case_id": "05-paired-boxplot",
+      "title": "Paired boxplot with connected observations",
+      "case_dir": "cases/05-paired-boxplot",
+      "figure_files": [
+        "paired_boxplot.png"
+      ],
+      "keywords": [
+        "paired boxplot",
+        "paired observations",
+        "before after",
+        "connected samples",
+        "drug"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "isolate",
+        "condition",
+        "drug",
+        "class",
+        "mic",
+        "updown"
+      ],
+      "optional_columns": [
+        "sig"
+      ],
+      "column_roles": {
+        "isolate": [
+          "isolate",
+          "sample",
+          "sample_id",
+          "subject",
+          "id",
+          "line",
+          "genotype"
+        ],
+        "condition": [
+          "condition",
+          "Condition",
+          "timepoint",
+          "treatment_stage",
+          "state",
+          "group"
+        ],
+        "drug": [
+          "drug",
+          "Drug",
+          "treatment",
+          "compound",
+          "intervention"
+        ],
+        "class": [
+          "class",
+          "Class",
+          "category",
+          "drug_class",
+          "group_class"
+        ],
+        "mic": [
+          "mic",
+          "MIC",
+          "value",
+          "measurement",
+          "response",
+          "score"
+        ],
+        "updown": [
+          "updown",
+          "direction",
+          "change",
+          "status",
+          "response_class"
+        ],
+        "sig": [
+          "sig",
+          "significance",
+          "p_label",
+          "label"
+        ]
+      }
+    },
+    {
+      "case_id": "06-raincloud",
+      "title": "Raincloud plot",
+      "case_dir": "cases/06-raincloud",
+      "figure_files": [
+        "raincloud.png"
+      ],
+      "keywords": [
+        "raincloud",
+        "violin",
+        "boxplot",
+        "jitter",
+        "distribution",
+        "species",
+        "environment"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "environment",
+        "species",
+        "leafout"
+      ],
+      "optional_columns": [],
+      "column_roles": {
+        "environment": [
+          "environment",
+          "Environment",
+          "site",
+          "location",
+          "condition",
+          "group"
+        ],
+        "species": [
+          "species",
+          "Species",
+          "taxon",
+          "genotype",
+          "line",
+          "group2"
+        ],
+        "leafout": [
+          "leafout",
+          "value",
+          "measurement",
+          "phenotype",
+          "trait",
+          "response",
+          "score"
+        ]
+      }
+    },
+    {
+      "case_id": "07-swimmer",
+      "title": "Swimmer plot",
+      "case_dir": "cases/07-swimmer",
+      "figure_files": [
+        "swimmer.png"
+      ],
+      "keywords": [
+        "swimmer",
+        "timeline",
+        "duration",
+        "patient",
+        "treatment response",
+        "clinical"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "patient",
+        "weeks",
+        "response",
+        "ongoing",
+        "progression",
+        "rt",
+        "rt_week"
+      ],
+      "optional_columns": [],
+      "column_roles": {
+        "patient": [
+          "patient",
+          "Patient",
+          "subject",
+          "subject_id",
+          "sample",
+          "sample_id",
+          "id"
+        ],
+        "weeks": [
+          "weeks",
+          "duration",
+          "time",
+          "time_weeks",
+          "end_week",
+          "length"
+        ],
+        "response": [
+          "response",
+          "Response",
+          "status",
+          "outcome",
+          "category"
+        ],
+        "ongoing": [
+          "ongoing",
+          "is_ongoing",
+          "censored",
+          "continues"
+        ],
+        "progression": [
+          "progression",
+          "progressed",
+          "event",
+          "progression_event"
+        ],
+        "rt": [
+          "rt",
+          "radiotherapy",
+          "treatment_marker",
+          "marker"
+        ],
+        "rt_week": [
+          "rt_week",
+          "marker_week",
+          "event_week",
+          "treatment_week"
+        ]
+      }
+    },
+    {
+      "case_id": "08-stream-area",
+      "title": "Stream/area composition plot",
+      "case_dir": "cases/08-stream-area",
+      "figure_files": [
+        "stream_area.png"
+      ],
+      "keywords": [
+        "stream",
+        "area",
+        "composition",
+        "time series"
+      ],
+      "real_data_supported": false,
+      "data_object": "sim",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "09-variance-bars",
+      "title": "Grouped variance bar plot",
+      "case_dir": "cases/09-variance-bars",
+      "figure_files": [
+        "variance_bars.png"
+      ],
+      "keywords": [
+        "bar plot",
+        "error bars",
+        "variance",
+        "qPCR",
+        "gene",
+        "stress"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "gene",
+        "stress",
+        "time",
+        "mean",
+        "se",
+        "letter"
+      ],
+      "optional_columns": [],
+      "column_roles": {
+        "gene": [
+          "gene",
+          "Gene",
+          "feature",
+          "feature_id",
+          "target"
+        ],
+        "stress": [
+          "stress",
+          "Stress",
+          "treatment",
+          "condition",
+          "group"
+        ],
+        "time": [
+          "time",
+          "Time",
+          "timepoint",
+          "time_point",
+          "stage"
+        ],
+        "mean": [
+          "mean",
+          "Mean",
+          "average",
+          "avg",
+          "value",
+          "estimate"
+        ],
+        "se": [
+          "se",
+          "SE",
+          "stderr",
+          "std_error",
+          "standard_error"
+        ],
+        "letter": [
+          "letter",
+          "letters",
+          "group_letter",
+          "significance_letter",
+          "sig_group"
+        ]
+      }
+    },
+    {
+      "case_id": "10-circos-fusion",
+      "title": "Circos fusion diagram",
+      "case_dir": "cases/10-circos-fusion",
+      "figure_files": [
+        "circos_fusion.png"
+      ],
+      "keywords": [
+        "circos",
+        "fusion",
+        "chromosome links",
+        "genomic links"
+      ],
+      "real_data_supported": false,
+      "data_object": "sim",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "11-module-network",
+      "title": "Module network graph",
+      "case_dir": "cases/11-module-network",
+      "figure_files": [
+        "module_network.png"
+      ],
+      "keywords": [
+        "network",
+        "module",
+        "graph",
+        "nodes",
+        "edges"
+      ],
+      "real_data_supported": false,
+      "data_object": "g",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "12-sankey-bubble",
+      "title": "Sankey plus bubble enrichment plot",
+      "case_dir": "cases/12-sankey-bubble",
+      "figure_files": [
+        "sankey_bubble.png"
+      ],
+      "keywords": [
+        "sankey",
+        "bubble",
+        "enrichment",
+        "pathways"
+      ],
+      "real_data_supported": false,
+      "data_object": "sim",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "13-discrete-heatmap",
+      "title": "Discrete heatmap",
+      "case_dir": "cases/13-discrete-heatmap",
+      "figure_files": [
+        "discrete_heatmap.png"
+      ],
+      "keywords": [
+        "heatmap",
+        "discrete",
+        "categorical matrix"
+      ],
+      "real_data_supported": false,
+      "data_object": "sim",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "14-mantel-heatmap",
+      "title": "Mantel heatmap",
+      "case_dir": "cases/14-mantel-heatmap",
+      "figure_files": [
+        "mantel_heatmap.png"
+      ],
+      "keywords": [
+        "mantel",
+        "heatmap",
+        "correlation",
+        "distance"
+      ],
+      "real_data_supported": false,
+      "data_object": "sim",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "15-multigroup-corr-heatmap",
+      "title": "Multi-group correlation heatmap",
+      "case_dir": "cases/15-multigroup-corr-heatmap",
+      "figure_files": [
+        "multigroup_corr_heatmap.png"
+      ],
+      "keywords": [
+        "correlation heatmap",
+        "multi-group",
+        "matrix"
+      ],
+      "real_data_supported": false,
+      "data_object": "sim",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "16-polar-heatmap",
+      "title": "Polar heatmap",
+      "case_dir": "cases/16-polar-heatmap",
+      "figure_files": [
+        "polar_heatmap.png"
+      ],
+      "keywords": [
+        "polar heatmap",
+        "circular heatmap",
+        "radial"
+      ],
+      "real_data_supported": false,
+      "data_object": "sim",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "17-multilevel-sankey",
+      "title": "Multilevel Sankey/alluvial plot",
+      "case_dir": "cases/17-multilevel-sankey",
+      "figure_files": [
+        "multilevel_sankey.png"
+      ],
+      "keywords": [
+        "sankey",
+        "alluvial",
+        "multilevel categories",
+        "flow"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "Global",
+        "Continent",
+        "LandCoverType",
+        "n"
+      ],
+      "optional_columns": [],
+      "column_roles": {
+        "Global": [
+          "Global",
+          "global",
+          "level1",
+          "source",
+          "from",
+          "category1"
+        ],
+        "Continent": [
+          "Continent",
+          "continent",
+          "level2",
+          "middle",
+          "category2"
+        ],
+        "LandCoverType": [
+          "LandCoverType",
+          "land_cover_type",
+          "landcover",
+          "level3",
+          "target",
+          "to",
+          "category3"
+        ],
+        "n": [
+          "n",
+          "N",
+          "count",
+          "Count",
+          "value",
+          "weight",
+          "frequency"
+        ]
+      }
+    },
+    {
+      "case_id": "18-treemap",
+      "title": "Treemap",
+      "case_dir": "cases/18-treemap",
+      "figure_files": [
+        "treemap.png"
+      ],
+      "keywords": [
+        "treemap",
+        "composition",
+        "area",
+        "hierarchical"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "system",
+        "category",
+        "n"
+      ],
+      "optional_columns": [],
+      "column_roles": {
+        "system": [
+          "system",
+          "System",
+          "label",
+          "name",
+          "feature",
+          "item"
+        ],
+        "category": [
+          "category",
+          "Category",
+          "class",
+          "group",
+          "type"
+        ],
+        "n": [
+          "n",
+          "N",
+          "count",
+          "Count",
+          "value",
+          "size",
+          "area"
+        ]
+      }
+    },
+    {
+      "case_id": "19-mosaic-sunburst",
+      "title": "Mosaic and sunburst composition plots",
+      "case_dir": "cases/19-mosaic-sunburst",
+      "figure_files": [
+        "mosaic.png",
+        "sunburst.png"
+      ],
+      "keywords": [
+        "mosaic",
+        "sunburst",
+        "composition",
+        "hierarchy"
+      ],
+      "real_data_supported": false,
+      "data_object": "sim",
+      "expected_columns": [],
+      "optional_columns": [],
+      "column_roles": {}
+    },
+    {
+      "case_id": "20-split-violin",
+      "title": "Split violin plot",
+      "case_dir": "cases/20-split-violin",
+      "figure_files": [
+        "split_violin.png"
+      ],
+      "keywords": [
+        "split violin",
+        "violin",
+        "two groups",
+        "distribution",
+        "risk"
+      ],
+      "real_data_supported": true,
+      "data_object": "dat",
+      "expected_columns": [
+        "cell",
+        "risk",
+        "value"
+      ],
+      "optional_columns": [],
+      "column_roles": {
+        "cell": [
+          "cell",
+          "Cell",
+          "feature",
+          "category",
+          "group",
+          "type"
+        ],
+        "risk": [
+          "risk",
+          "Risk",
+          "group2",
+          "condition",
+          "status",
+          "class"
+        ],
+        "value": [
+          "value",
+          "Value",
+          "measurement",
+          "score",
+          "abundance",
+          "response"
+        ]
+      }
+    }
+  ]
+}

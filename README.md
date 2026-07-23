@@ -1,115 +1,287 @@
 # Data Analysis Agency
 
-**Data Analysis Agency** is a modular, provider-configurable Google ADK multi-agent app for exploratory data analysis. It is designed to help a user inspect a dataset, understand its structure, run basic exploratory statistics, create simple charts, generate analysis plans, and produce a plain-language report.
+**Data Analysis Agency** is a modular Google ADK multi-agent workflow for local data inspection, exploratory data analysis, simple charts, and approved publication-style plots.
 
-The app is intentionally organized like an agency: a **supervisor agent** plans the work and recruits specialist agents when their skills are useful for the user's request. This makes the workflow easier to maintain because model settings, search settings, prompts, tools, local data access, and agent orchestration are separated into different files.
-
----
-
-## What this app does
-
-The app can help with tasks such as:
-
-- Listing available datasets in the project data folder
-- Inspecting a dataset's shape, columns, data types, missing values, duplicates, and sample values
-- Running deterministic exploratory data analysis with pandas
-- Summarizing numeric and categorical variables
-- Flagging possible data-quality issues
-- Creating simple exploratory charts and saving them locally
-- Writing a reproducible Python/pandas analysis plan
-- Producing a user-facing Markdown report
-- Optionally researching statistical methods or analysis conventions when web search is enabled
-
-The most important design choice is that **statistics are calculated by Python tools, not invented by the language model**. The AI agents decide what to do, summarize results, and write reports, but pandas performs the actual computations.
+The agency uses a **supervisor agent** that reads the user request, decides what needs to happen, and recruits the right specialist agents. It is intentionally divided into separate agents, tools, prompts, model configuration, search configuration, local document access, and plotting modules so the system can grow without becoming one large tangled script.
 
 ---
 
-## How the agency is organized
+## What the agency can do
 
-The root agent is the supervisor:
+The agency can:
 
-```text
-DataAnalysisAgencySupervisor
-```
+- Find datasets in the local `data/` folder.
+- Inspect common tabular data files.
+- Recognize and summarize `.bed` genomic interval files.
+- Run deterministic pandas-based EDA.
+- Report missing values, column types, categorical summaries, numeric summaries, correlations, and outlier warnings.
+- Create basic exploratory charts with Python.
+- Create approved ggplot2 publication-style plots through R.
+- Render demo publication-style plots from simulated data included with the approved plot cases.
+- Write a clear final report and save it as Markdown.
+- Write safe analysis/code plans for the user to review.
 
-The supervisor reads the user's request, forms a plan, and calls specialist agents as needed. It does not need to use every agent for every task.
-
-### Specialist agents
-
-| Agent | Main purpose | Typical use |
-|---|---|---|
-| `DataIntakeAgent` | Finds and inspects datasets | Use first when the user provides a dataset or asks what data is available |
-| `EDAAgent` | Runs deterministic pandas-based EDA | Use for statistics, missingness, correlations, outliers, and summaries |
-| `VisualizationAgent` | Creates simple charts | Use when the user asks for plots, charts, graphs, or visual EDA |
-| `CodePlanningAgent` | Writes safe Python/pandas code plans | Use when the user asks for reproducible code or an analysis plan |
-| `ReportAgent` | Writes final user-facing reports | Use when the user asks for a polished report or saved summary |
-| `MethodResearchAgent` | Optional method research | Use only when external search is enabled and the user asks for methodological guidance |
+The agency does **not** run arbitrary user-provided R code for publication plots. Publication-style plots are limited to predefined, approved recipes.
 
 ---
 
 ## Recommended directory structure
 
-Keep the project folder organized like this:
+Keep the project organized like this:
 
 ```text
-Data_analysis_agency/
-├── .venv/                         # local virtual environment; do not commit to GitHub
-├── requirements.txt               # Python packages needed by the app
-├── README.md                      # user guide for the app
-└── data_analysis_agency/
-    ├── __init__.py
-    ├── agent.py                   # defines the supervisor/root agent
-    ├── agent_cards.py             # short descriptions used by the supervisor to select agents
-    ├── config.py                  # reads settings from .env
-    ├── llm_factory.py             # switches between Gemini and LiteLLM-backed providers
-    ├── prompts.py                 # instructions for supervisor and specialist agents
-    ├── search_provider.py         # optional search-tool configuration
-    ├── .env.example               # template for local settings
-    ├── .env                       # your real local settings; do not commit to GitHub
-    ├── agents/
-    │   ├── __init__.py
-    │   └── specialists.py         # creates the specialist agents
-    ├── tools/
-    │   ├── __init__.py
-    │   ├── data_tools.py          # data loading, inspection, EDA, and chart tools
-    │   └── report_tools.py        # Markdown report saving tool
-    ├── data/                      # put datasets here
-    └── outputs/                   # charts and reports are saved here
+Data_Analysis_Agency/
+├── .env.example
+├── .env                         # you create this from .env.example
+├── README.md
+├── requirements.txt
+├── agent.py                     # supervisor/root agent
+├── agent_cards.py               # descriptions the supervisor uses for routing
+├── config.py                    # environment and path settings
+├── llm_factory.py               # model/provider configuration
+├── prompts.py                   # agent instructions
+├── search_provider.py           # optional search setup
+├── agents/
+│   ├── __init__.py
+│   └── specialists.py           # specialist agent builders
+├── tools/
+│   ├── __init__.py
+│   ├── data_tools.py            # data loading, EDA, BED support, basic charts
+│   ├── publication_plot_tools.py # approved publication plotting tools
+│   ├── r_bridge.py              # Python-to-R bridge and path checks
+│   └── report_tools.py          # report saving
+├── plot_manifests/
+│   └── ggplot2_cases.json       # approved plot recipe metadata
+├── r_plot_library/
+│   └── ggplot2_cases/           # copied R plotting cases
+├── data/                        # put user datasets here
+└── outputs/
+    ├── plots/                   # generated plots
+    └── reports/                 # generated reports
 ```
 
-### Where to put datasets
-
-Place datasets inside:
+The safest practice is to place input datasets inside:
 
 ```text
-data_analysis_agency/data/
+Data_Analysis_Agency/data/
 ```
 
-For example:
+Generated files are saved under:
 
 ```text
-data_analysis_agency/data/soybean_traits.csv
-data_analysis_agency/data/experiments/greenhouse_trial.xlsx
-data_analysis_agency/data/example_project/phenotype_data.tsv
-```
-
-Relative file paths in your prompts are resolved from the `DATA_DIR` setting. For example, if the file is here:
-
-```text
-data_analysis_agency/data/experiments/greenhouse_trial.xlsx
-```
-
-You can prompt the app with:
-
-```text
-Analyze experiments/greenhouse_trial.xlsx. Inspect the format, run EDA, create basic charts, and write a report.
+Data_Analysis_Agency/outputs/plots/
+Data_Analysis_Agency/outputs/reports/
 ```
 
 ---
 
-## Supported file types
+## Specialist agents
 
-The current data tools support:
+The supervisor can recruit these agents as needed:
+
+| Agent | Main job |
+|---|---|
+| `DataIntakeAgent` | Finds and inspects datasets, including BED files. |
+| `EDAAgent` | Runs deterministic pandas-based EDA. |
+| `VisualizationAgent` | Creates simple Python charts. |
+| `ColumnDecoderAgent` | Matches real column names to expected plot recipe columns. |
+| `PublicationPlotAgent` | Creates approved ggplot2 publication-style plots through R. |
+| `CodePlanningAgent` | Writes safe reproducible analysis/code plans. |
+| `ReportAgent` | Synthesizes results into a final report. |
+| `MethodResearchAgent` | Optionally searches for method/package guidance when enabled. |
+
+The supervisor does not need to use every agent for every task. For example, a request to inspect a BED file may only need `DataIntakeAgent`, while a request for a publication-style Manhattan plot may need `DataIntakeAgent`, `ColumnDecoderAgent`, and `PublicationPlotAgent`.
+
+---
+
+## Setup
+
+### 1. Create and activate a Python environment
+
+From the folder containing `Data_Analysis_Agency/`:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+On Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+### 2. Install Python dependencies
+
+```bash
+pip install -r Data_Analysis_Agency/requirements.txt
+```
+
+If you use Claude or OpenAI through LiteLLM, the `orjson` dependency is important. A missing `orjson` package can cause LiteLLM to fail before the model call reaches the provider.
+
+### 3. Create your `.env` file
+
+```bash
+cp Data_Analysis_Agency/.env.example Data_Analysis_Agency/.env
+```
+
+Then edit `Data_Analysis_Agency/.env` and add your API key.
+
+---
+
+## Model provider configuration
+
+### Gemini through ADK
+
+```env
+PROVIDER=gemini
+MODEL=gemini-flash-latest
+GOOGLE_API_KEY=PASTE_YOUR_GEMINI_API_KEY_HERE
+```
+
+### Claude through LiteLLM
+
+```env
+PROVIDER=litellm
+MODEL=anthropic/claude-3-5-sonnet-20241022
+ANTHROPIC_API_KEY=PASTE_YOUR_ANTHROPIC_API_KEY_HERE
+```
+
+Here, `PROVIDER=litellm` means the agency is using ADK's LiteLLM adapter. The actual model provider is identified inside the model name: `anthropic/...`.
+
+### OpenAI through LiteLLM
+
+```env
+PROVIDER=litellm
+MODEL=openai/gpt-4o-mini
+OPENAI_API_KEY=PASTE_YOUR_OPENAI_API_KEY_HERE
+```
+
+---
+
+## R setup for publication-style plots
+
+Publication-style plots use copied R/ggplot2 case recipes under:
+
+```text
+Data_Analysis_Agency/r_plot_library/ggplot2_cases/
+```
+
+To use these plot recipes, the user's system must have:
+
+1. R installed.
+2. `Rscript` available on the command line.
+3. The required R packages installed.
+
+Check R:
+
+```bash
+Rscript --version
+```
+
+### Recommended WSL/Linux package setup
+
+If you are using WSL or Linux, install the harder R plotting dependencies through Ubuntu's prebuilt `r-cran-*` packages first. This is the recommended route because packages such as `igraph`, `ggraph`, `sf`, and related dependencies may fail when R tries to compile them from source.
+
+Run this from the Linux/WSL terminal:
+
+```bash
+sudo apt update
+
+for pkg in \
+  r-cran-igraph \
+  r-cran-tidygraph \
+  r-cran-ggraph \
+  r-cran-graphlayouts \
+  r-cran-sf \
+  r-cran-units \
+  r-cran-lwgeom \
+  r-cran-circlize \
+  r-cran-treemapify
+do
+  if apt-cache show "$pkg" >/dev/null 2>&1; then
+    echo "Installing $pkg"
+    sudo apt install -y "$pkg"
+  else
+    echo "Not available from apt: $pkg"
+  fi
+done
+```
+
+After that, run the project setup script from the ggplot2 case folder:
+
+```bash
+cd Data_Analysis_Agency/r_plot_library/ggplot2_cases
+Rscript setup.R
+```
+
+The setup script can then fill remaining package gaps instead of trying to build every difficult dependency from source.
+
+### Optional personal R library
+
+If R tries to install packages into a system folder such as `/usr/local/lib/R/site-library` and reports that it is not writable, create a personal R package library:
+
+```bash
+mkdir -p ~/R/data_analysis_agency_library
+echo 'R_LIBS_USER=~/R/data_analysis_agency_library' >> ~/.Renviron
+export R_LIBS_USER=~/R/data_analysis_agency_library
+```
+
+Then rerun:
+
+```bash
+cd Data_Analysis_Agency/r_plot_library/ggplot2_cases
+Rscript setup.R
+```
+
+The agency can still inspect data and run EDA while R plotting packages are being fixed.
+
+---
+
+## Path guidance
+
+The agency includes checks to confirm paths can be read by both Python and R.
+
+The simplest rule is:
+
+> Use paths that are readable from the same environment where you run `adk run` or `adk web`.
+
+If you run ADK from WSL, prefer WSL-style paths:
+
+```text
+/mnt/c/Users/yourname/path/to/file.csv
+```
+
+rather than Windows-style paths:
+
+```text
+C:\Users\yourname\path\to\file.csv
+```
+
+The safest option is to place files in:
+
+```text
+Data_Analysis_Agency/data/
+```
+
+Then refer to them by name:
+
+```text
+Analyze soybean_traits.csv
+```
+
+By default, absolute file paths are disabled for safety. To allow them, set this in `.env`:
+
+```env
+ALLOW_ABSOLUTE_DATA_PATHS=true
+```
+
+---
+
+## Supported data files
+
+The agency currently supports:
 
 ```text
 .csv
@@ -120,491 +292,346 @@ The current data tools support:
 .json
 .txt
 .data
+.bed
+.bed.gz
 ```
-
-Notes:
-
-- CSV files are read with `pandas.read_csv()`.
-- TSV and TAB files are read as tab-delimited files.
-- Excel files use the first sheet by default unless the user specifies a sheet name.
-- JSON files are read as standard JSON first, then as line-delimited JSON if needed.
-- TXT and DATA files are treated as delimited text files and pandas attempts to infer the delimiter.
 
 ---
 
-## Setup
+## BED file support
 
-From the folder that contains `data_analysis_agency/`, create and activate a virtual environment.
+BED files are common in bioinformatics and are handled as genomic interval data.
 
-### Linux / WSL / macOS
+The agency expects the first three BED fields to be:
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+```text
+chrom
+chromStart
+chromEnd
 ```
 
-### Windows PowerShell
+Optional BED fields are also recognized when present:
 
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+```text
+name
+score
+strand
+thickStart
+thickEnd
+itemRgb
+blockCount
+blockSizes
+blockStarts
 ```
 
-Then copy the environment template:
+For BED files, the agency can summarize:
 
-```bash
-cp data_analysis_agency/.env.example data_analysis_agency/.env
-```
+- Number of intervals.
+- Number of chromosomes or scaffolds.
+- Top chromosomes/scaffolds by interval count.
+- Interval length summaries.
+- Score summaries when a score column exists.
+- Strand counts when strand information exists.
+- Inferred chromosome/scaffold lengths from max `chromEnd`.
 
-On Windows PowerShell:
-
-```powershell
-Copy-Item data_analysis_agency/.env.example data_analysis_agency/.env
-```
-
-Then open `data_analysis_agency/.env` and add your model settings and API key.
+If a genome-wide plot needs chromosome sizes and you do not provide a genome sizes file, the agency can infer sizes from the largest `chromEnd` in the BED file. This is useful, but may underestimate true chromosome lengths if the BED file does not include intervals near chromosome ends.
 
 ---
 
-## Important dependency note for LiteLLM users
+## Column naming guidance
 
-If you use Claude, OpenAI, or another non-Gemini model through LiteLLM, make sure `orjson` is installed. A missing `orjson` package can cause an error like:
+Real-world datasets often use different names for the same idea. The agency includes a `ColumnDecoderAgent` to recognize common variants.
 
-```text
-ModuleNotFoundError: No module named 'orjson'
-```
-
-A good `requirements.txt` for this project is:
+Examples that should usually be recognized as similar:
 
 ```text
-google-adk
-python-dotenv
-pandas
-numpy
-matplotlib
-openpyxl
-litellm
-orjson
+start
+Start
+chrom_start
+chromStart
 ```
 
-If you already installed the project and then hit the `orjson` error, activate your virtual environment and run:
-
-```bash
-python -m pip install orjson
+```text
+chr
+chrom
+chromosome
+CHR
 ```
 
-A more complete LiteLLM install is:
-
-```bash
-python -m pip install "litellm[proxy]"
+```text
+p
+pvalue
+p_value
+p.val
+P
 ```
 
-For this app, installing `orjson` is usually enough to fix the immediate missing-dependency error.
+However, clear standardized names are still best. When a plot recipe requires specific fields, use column names that clearly express the role of each column. If multiple columns could match the same role, the agency should report the uncertainty rather than silently guessing.
 
 ---
 
-## Environment settings
+## Publication-style plotting
 
-The app reads settings from:
+The agency includes approved ggplot2 cases in:
 
 ```text
-data_analysis_agency/.env
+Data_Analysis_Agency/r_plot_library/ggplot2_cases/
 ```
 
-### Gemini example
+The recipe metadata lives in:
 
-Use this when running Gemini directly through ADK:
-
-```env
-PROVIDER=gemini
-MODEL=gemini-flash-latest
-GOOGLE_API_KEY=PASTE_YOUR_GEMINI_API_KEY_HERE
-
-DATA_DIR=./data_analysis_agency/data
-OUTPUT_DIR=./data_analysis_agency/outputs
-ALLOW_ABSOLUTE_DATA_PATHS=false
-MAX_FILE_MB=100
-MAX_PREVIEW_ROWS=8
-ENABLE_WEB_SEARCH=false
+```text
+Data_Analysis_Agency/plot_manifests/ggplot2_cases.json
 ```
 
-### Claude through LiteLLM example
+The plot recipe names intentionally use `ggplot2_cases`, not `ggplot2_journal_cases`.
 
-Use this when running Claude through ADK's LiteLLM adapter:
+### Important rule
 
-```env
-PROVIDER=litellm
-MODEL=anthropic/claude-3-5-sonnet-20241022
-ANTHROPIC_API_KEY=PASTE_YOUR_ANTHROPIC_API_KEY_HERE
+For publication-style plots, the agency only runs predefined recipes with controlled arguments. It does not run arbitrary user-provided R code.
 
-DATA_DIR=./data_analysis_agency/data
-OUTPUT_DIR=./data_analysis_agency/outputs
-ALLOW_ABSOLUTE_DATA_PATHS=false
-MAX_FILE_MB=100
-MAX_PREVIEW_ROWS=8
-ENABLE_WEB_SEARCH=false
+### Demo plots from simulated data
+
+Each copied ggplot2 case includes simulation code. The agency can render a demo plot from simulated data when the user asks for an example or preview.
+
+Example prompt:
+
+```text
+Show me a demo of the Manhattan plot case.
 ```
 
-### OpenAI through LiteLLM example
+Example prompt:
 
-```env
-PROVIDER=litellm
-MODEL=openai/gpt-4o-mini
-OPENAI_API_KEY=PASTE_YOUR_OPENAI_API_KEY_HERE
-
-DATA_DIR=./data_analysis_agency/data
-OUTPUT_DIR=./data_analysis_agency/outputs
-ALLOW_ABSOLUTE_DATA_PATHS=false
-MAX_FILE_MB=100
-MAX_PREVIEW_ROWS=8
-ENABLE_WEB_SEARCH=false
+```text
+Render a simulated split violin plot so I can see what the style looks like.
 ```
 
-### What the settings mean
+### Real-data publication plots
 
-| Setting | Meaning |
-|---|---|
-| `PROVIDER` | The model interface used by the app. Use `gemini` for native Gemini or `litellm` for providers routed through LiteLLM. |
-| `MODEL` | The model name. For LiteLLM, include the provider prefix, such as `anthropic/...` or `openai/...`. |
-| `GOOGLE_API_KEY` | API key for Gemini. |
-| `ANTHROPIC_API_KEY` | API key for Claude models through LiteLLM. |
-| `OPENAI_API_KEY` | API key for OpenAI models through LiteLLM. |
-| `DATA_DIR` | Folder where the app looks for datasets. |
-| `OUTPUT_DIR` | Folder where charts and reports are saved. |
-| `ALLOW_ABSOLUTE_DATA_PATHS` | Whether the app can read files from absolute paths outside `DATA_DIR`. Default is safer: `false`. |
-| `MAX_FILE_MB` | Maximum allowed input file size. |
-| `MAX_PREVIEW_ROWS` | Number of sample values shown during data inspection. |
-| `ENABLE_WEB_SEARCH` | Enables optional method research through search tools when supported. |
+For real data, the agency checks whether your columns can be mapped to the required fields for the selected recipe. If the data does not support the requested plot, it should tell you what is missing.
+
+Example prompt:
+
+```text
+Make a publication-style Manhattan plot from gwas_results.csv.
+```
+
+Example prompt:
+
+```text
+What ggplot2 publication-style plots can this dataset support?
+```
+
+Example prompt:
+
+```text
+Create a raincloud plot from phenotype_traits.csv and save it to outputs/plots.
+```
+
+Some plot cases are demo-only in this starter version because they require complex R objects, matrices, graphs, or multiple linked tables rather than one simple data frame.
 
 ---
 
-## Why `PROVIDER=litellm` for Claude?
+## Running the agency
 
-In this app, `PROVIDER` means the **model interface** used by ADK.
-
-For Gemini, ADK can use the model directly:
-
-```text
-ADK agent → Gemini
-```
-
-For Claude, this project uses LiteLLM as the bridge:
-
-```text
-ADK agent → LiteLLM adapter → Anthropic Claude
-```
-
-That is why Claude is configured like this:
-
-```env
-PROVIDER=litellm
-MODEL=anthropic/claude-3-5-sonnet-20241022
-ANTHROPIC_API_KEY=...
-```
-
-The true model provider is still Anthropic, but the app reaches it through the LiteLLM adapter.
-
----
-
-## Running the app
-
-From the folder that contains `data_analysis_agency/`, activate your virtual environment first.
-
-### Terminal mode
+From the folder containing `Data_Analysis_Agency/`:
 
 ```bash
-adk run data_analysis_agency
+adk run Data_Analysis_Agency
 ```
 
-### Browser mode
+Or use the browser UI:
 
 ```bash
 adk web --port 8000
 ```
 
-Then open the local ADK web interface shown in your terminal.
+Then choose the `Data_Analysis_Agency` app in the ADK web interface.
 
 ---
 
 ## Example prompts
 
-### Basic dataset inspection
+### Inspect a dataset
 
 ```text
-List the datasets available to analyze.
+Inspect soybean_traits.csv and tell me about the columns, missing values, and data types.
+```
+
+### Run EDA
+
+```text
+Run exploratory data analysis on phenotype_data.csv. Summarize missingness, numeric variables, categorical variables, correlations, and possible outliers.
+```
+
+### Analyze a BED file
+
+```text
+Inspect repeats.bed. Summarize the chromosomes, interval lengths, scores, strands, and inferred chromosome sizes.
+```
+
+### Basic charts
+
+```text
+Create basic exploratory charts for soybean_traits.csv.
+```
+
+### Publication-style plots
+
+```text
+List the approved ggplot2 publication-style plot cases.
 ```
 
 ```text
-Inspect soybean_traits.csv and summarize the columns, data types, missing values, duplicates, and sample values.
-```
-
-### Full exploratory analysis
-
-```text
-Analyze soybean_traits.csv. Inspect the format, run EDA, flag data-quality issues, create basic charts, and write a short final report.
-```
-
-### Excel file
-
-```text
-Analyze experiment_results.xlsx. Use the first sheet. Inspect the data, summarize numeric and categorical variables, and flag possible problems.
+What publication-style plots can phenotype_data.csv support?
 ```
 
 ```text
-Analyze experiment_results.xlsx using the sheet named Trial_1. Create basic charts and save a report.
+Make a demo plot for case 04-manhattan-twas using simulated data.
 ```
-
-### Nested data folder
 
 ```text
-Analyze experiments/greenhouse_trial.xlsx. Run EDA, create charts, and summarize the most important findings.
+Make a publication-style Manhattan plot from gwas_results.csv.
 ```
 
-### Code planning
+### Reports
 
 ```text
-Write a reproducible Python analysis plan for phenotype.csv. Include loading, missingness checks, numeric summaries, categorical summaries, correlations, outlier checks, and plots.
-```
-
-### Report writing
-
-```text
-Run a full exploratory analysis on phenotype_data.tsv and save the final Markdown report.
-```
-
-### Method guidance
-
-```text
-I have a phenotype dataset with genotype groups and treatment groups. Suggest an analysis strategy before running EDA.
-```
-
-If `ENABLE_WEB_SEARCH=false`, the agency should rely on general model knowledge and local tools. If `ENABLE_WEB_SEARCH=true`, the `MethodResearchAgent` may use search for external method context.
-
----
-
-## What output files to expect
-
-The app saves generated files in:
-
-```text
-data_analysis_agency/outputs/
-```
-
-Possible outputs include:
-
-```text
-eda_trait_hist.png
-eda_group_bar.png
-20260716_214500_data_analysis_report.md
-```
-
-The exact filenames depend on the tool call and timestamp.
-
----
-
-## Privacy and safety notes
-
-This app is meant for local analysis support, but user prompts and tool outputs may still be sent to the selected model provider.
-
-Recommended habits:
-
-- Do not put API keys inside prompts.
-- Do not upload or analyze sensitive personal data unless you are comfortable sending summaries to the model provider.
-- Keep `.env` out of GitHub.
-- Keep `.venv/`, `data/`, and `outputs/` out of GitHub if they contain private data or large files.
-- Use relative paths inside `DATA_DIR` when possible.
-- Keep `ALLOW_ABSOLUTE_DATA_PATHS=false` unless you specifically need broader local file access.
-
-A useful `.gitignore` pattern is:
-
-```gitignore
-.venv/
-__pycache__/
-*.pyc
-.env
-data_analysis_agency/.env
-data_analysis_agency/data/
-data_analysis_agency/outputs/
+Analyze soybean_traits.csv, create relevant charts, and save a Markdown report.
 ```
 
 ---
 
-## Common troubleshooting
+## Troubleshooting
 
-### `ModuleNotFoundError: No module named 'orjson'`
+### `No module named 'orjson'`
 
-Install the missing package inside the active virtual environment:
+Install `orjson` in the same virtual environment:
 
 ```bash
 source .venv/bin/activate
 python -m pip install orjson
 ```
 
-Or install the fuller LiteLLM proxy extras:
+Or reinstall requirements:
 
 ```bash
-python -m pip install "litellm[proxy]"
+python -m pip install -r Data_Analysis_Agency/requirements.txt
 ```
 
-### The app cannot find my dataset
+### `Rscript was not found on PATH`
 
-Check that the file is inside:
-
-```text
-data_analysis_agency/data/
-```
-
-Then refer to it by relative path:
-
-```text
-Analyze soybean_traits.csv.
-```
-
-If it is in a subfolder:
-
-```text
-Analyze experiments/soybean_traits.csv.
-```
-
-### The app says absolute paths are disabled
-
-By default, the app only reads files inside `DATA_DIR`. This is safer. Either move the file into `data_analysis_agency/data/`, or change this setting in `.env`:
-
-```env
-ALLOW_ABSOLUTE_DATA_PATHS=true
-```
-
-Use that setting carefully.
-
-### I changed `.env`, but the app still behaves the same
-
-Stop and restart ADK:
+Install R in the same environment where ADK is running, then check:
 
 ```bash
-Ctrl+C
-adk web --port 8000
+Rscript --version
 ```
 
-Environment settings are loaded when the app starts.
+### R packages are missing
 
-### I installed a package, but Python still cannot find it
-
-Make sure your virtual environment is active:
+For WSL/Linux, use the Ubuntu prebuilt package route first:
 
 ```bash
-which python
-python -m pip list
+sudo apt update
+
+for pkg in \
+  r-cran-igraph \
+  r-cran-tidygraph \
+  r-cran-ggraph \
+  r-cran-graphlayouts \
+  r-cran-sf \
+  r-cran-units \
+  r-cran-lwgeom \
+  r-cran-circlize \
+  r-cran-treemapify
+do
+  if apt-cache show "$pkg" >/dev/null 2>&1; then
+    echo "Installing $pkg"
+    sudo apt install -y "$pkg"
+  else
+    echo "Not available from apt: $pkg"
+  fi
+done
 ```
 
-The `python` path should point inside your project `.venv/` folder.
+Then rerun the project setup script:
 
-### LiteLLM provider errors
+```bash
+cd Data_Analysis_Agency/r_plot_library/ggplot2_cases
+Rscript setup.R
+```
 
-Check three things:
+This route is often more reliable than asking R to compile large packages such as `igraph`, `sf`, `tidygraph`, and `ggraph` from source.
 
-1. `PROVIDER=litellm`
-2. `MODEL` includes the provider prefix, such as `anthropic/...` or `openai/...`
-3. The matching API key exists in `.env`, such as `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`
+### R says the system library is not writable
+
+If you see a message like this:
+
+```text
+'lib = "/usr/local/lib/R/site-library"' is not writable
+```
+
+create and use a personal R library:
+
+```bash
+mkdir -p ~/R/data_analysis_agency_library
+echo 'R_LIBS_USER=~/R/data_analysis_agency_library' >> ~/.Renviron
+export R_LIBS_USER=~/R/data_analysis_agency_library
+```
+
+Then rerun:
+
+```bash
+cd Data_Analysis_Agency/r_plot_library/ggplot2_cases
+Rscript setup.R
+```
+
+### Some R packages still fail
+
+The publication plot system allows partial case availability. This means the agency can still inspect data, run EDA, write reports, and generate any plots whose required packages are installed.
+
+If the setup still fails, look for the **first package-specific error** in the log. The final lines often show downstream failures only. For example, if `igraph` fails, then `tidygraph` and `ggraph` may also fail because they depend on it.
+
+### R cannot read my file path
+
+Use a path readable from the ADK runtime environment. If using WSL, prefer `/mnt/c/...` paths or place the file inside the agency `data/` folder.
+
+### My data does not support the plot I requested
+
+The agency should tell you which required columns are missing. Rename columns to standardized terms or choose a plot recipe that matches your data.
+
+For example, a Manhattan plot usually needs:
+
+```text
+CHR
+BP
+P
+```
+
+A BED file with only `chrom`, `chromStart`, and `chromEnd` can be summarized, but it cannot produce a p-value Manhattan plot unless p-values or an equivalent signal column are also provided.
 
 ---
 
-## How to extend the agency later
+## Suggested `.gitignore`
 
-This project was designed so that you can add capabilities without rewriting everything.
-
-### Add or edit agent instructions
-
-Edit:
-
-```text
-data_analysis_agency/prompts.py
-```
-
-Use this when you want to change how an agent behaves.
-
-### Add or edit specialist descriptions
-
-Edit:
-
-```text
-data_analysis_agency/agent_cards.py
-```
-
-The supervisor uses these cards to decide which specialist to call.
-
-### Add a new tool
-
-Add or edit functions in:
-
-```text
-data_analysis_agency/tools/
-```
-
-Then attach the tool to a specialist agent in:
-
-```text
-data_analysis_agency/agents/specialists.py
-```
-
-### Add a new specialist agent
-
-1. Add a new prompt in `prompts.py`.
-2. Add a new description card in `agent_cards.py`.
-3. Add a builder function in `agents/specialists.py`.
-4. Add the new agent as an `AgentTool` in `agent.py` so the supervisor can recruit it.
-
-### Switch model providers
-
-Usually, you only need to edit:
-
-```text
-data_analysis_agency/.env
-```
-
-The model-routing logic is handled in:
-
-```text
-data_analysis_agency/llm_factory.py
+```gitignore
+.env
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+Data_Analysis_Agency/data/*
+Data_Analysis_Agency/outputs/*
+!Data_Analysis_Agency/data/.gitkeep
+!Data_Analysis_Agency/outputs/.gitkeep
 ```
 
 ---
 
-## Current limitations
+## Safety and privacy notes
 
-This starter app is intentionally simple. Current limitations include:
-
-- It performs general EDA, not specialized statistical modeling.
-- It creates basic charts only.
-- It does not automatically clean or transform data unless future tools are added.
-- It does not execute arbitrary user-written code.
-- It does not automatically validate scientific assumptions.
-- Very large datasets may need a more scalable loading strategy.
-- Results depend on the quality and structure of the input data.
-
----
-
-## Suggested first test
-
-After setup, place one small CSV file in:
-
-```text
-data_analysis_agency/data/
-```
-
-Then run:
-
-```bash
-adk web --port 8000
-```
-
-Prompt:
-
-```text
-List available datasets, inspect my CSV file, run EDA, create basic charts, and save a short Markdown report.
-```
-
-This tests the full agency path: dataset discovery, intake, EDA, visualization, and reporting.
+- Keep sensitive datasets local unless you intentionally choose otherwise.
+- The model receives summaries and tool outputs, not necessarily the full raw dataset.
+- Do not place API keys in source code.
+- Publication-style R plotting is restricted to approved recipes and controlled arguments.
+- Review all generated plots and reports before using them in a professional or publication context.

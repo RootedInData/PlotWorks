@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gzip
 import json
 from pathlib import Path
 from typing import Any
@@ -8,6 +9,22 @@ import numpy as np
 import pandas as pd
 
 from ..config import settings
+
+BED_COLUMNS = [
+    "chrom",
+    "chromStart",
+    "chromEnd",
+    "name",
+    "score",
+    "strand",
+    "thickStart",
+    "thickEnd",
+    "itemRgb",
+    "blockCount",
+    "blockSizes",
+    "blockStarts",
+]
+SUPPORTED_SUFFIXES = {".csv", ".tsv", ".tab", ".xlsx", ".xls", ".json", ".txt", ".data", ".bed"}
 
 
 def _json_safe(obj: Any) -> Any:
@@ -36,8 +53,14 @@ def _result(status: str, **kwargs: Any) -> dict[str, Any]:
     return _json_safe({"status": status, **kwargs})
 
 
-def _resolve_data_path(file_path: str) -> Path:
-    clean = file_path.strip().strip('"').strip("'")
+def resolve_data_path(file_path: str) -> Path:
+    """Resolve a user-provided path against the agency data directory.
+
+    Relative paths are resolved inside settings.data_dir. Absolute paths are only
+    allowed when ALLOW_ABSOLUTE_DATA_PATHS=true.
+    """
+
+    clean = str(file_path).strip().strip('"').strip("'")
     candidate = Path(clean).expanduser()
 
     if candidate.is_absolute():
@@ -65,9 +88,73 @@ def _resolve_data_path(file_path: str) -> Path:
     return path
 
 
-def _load_dataset(file_path: str, sheet_name: str = "") -> pd.DataFrame:
-    path = _resolve_data_path(file_path)
-    suffix = path.suffix.lower()
+def _suffix(path: Path) -> str:
+    if path.name.lower().endswith(".bed.gz"):
+        return ".bed.gz"
+    return path.suffix.lower()
+
+
+def _open_text(path: Path):
+    if path.name.lower().endswith(".gz"):
+        return gzip.open(path, "rt", encoding="utf-8", errors="replace")
+    return path.open("r", encoding="utf-8", errors="replace")
+
+
+def _bed_data_lines(path: Path) -> list[str]:
+    lines: list[str] = []
+    with _open_text(path) as handle:
+        for line in handle:
+            stripped = line.strip()
+            if not stripped:
+                continue
+            lower = stripped.lower()
+            if lower.startswith("track") or lower.startswith("browser") or stripped.startswith("#"):
+                continue
+            lines.append(stripped)
+    return lines
+
+
+def load_bed_file(file_path: str) -> pd.DataFrame:
+    """Load a BED file into a DataFrame with standard BED column names."""
+
+    path = resolve_data_path(file_path)
+    lines = _bed_data_lines(path)
+    if not lines:
+        raise ValueError("BED file contains no data rows after skipping track/browser/comment lines.")
+
+    split_rows = [line.split("\t") if "\t" in line else line.split() for line in lines]
+    field_counts = {len(row) for row in split_rows}
+    max_fields = max(field_counts)
+    min_fields = min(field_counts)
+    if min_fields < 3:
+        raise ValueError("BED files require at least 3 columns: chrom, chromStart, chromEnd.")
+
+    # BED optional fields should usually be consistent, but real files sometimes
+    # have missing trailing optional fields. Pad those rows instead of failing.
+    split_rows = [row + [pd.NA] * (max_fields - len(row)) for row in split_rows]
+    n_fields = max_fields
+
+    if n_fields <= len(BED_COLUMNS):
+        columns = BED_COLUMNS[:n_fields]
+    else:
+        columns = BED_COLUMNS + [f"extra_{i}" for i in range(13, n_fields + 1)]
+
+    df = pd.DataFrame(split_rows, columns=columns)
+    for col in ["chromStart", "chromEnd", "score", "thickStart", "thickEnd", "blockCount"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if {"chromStart", "chromEnd"}.issubset(df.columns):
+        df["interval_length"] = df["chromEnd"] - df["chromStart"]
+
+    return df
+
+
+def load_dataset_frame(file_path: str, sheet_name: str = "") -> pd.DataFrame:
+    """Load a supported dataset file into a pandas DataFrame."""
+
+    path = resolve_data_path(file_path)
+    suffix = _suffix(path)
 
     if suffix == ".csv":
         return pd.read_csv(path)
@@ -83,25 +170,125 @@ def _load_dataset(file_path: str, sheet_name: str = "") -> pd.DataFrame:
             return pd.read_json(path, lines=True)
     if suffix in {".txt", ".data"}:
         return pd.read_csv(path, sep=None, engine="python")
+    if suffix in {".bed", ".bed.gz"}:
+        return load_bed_file(file_path)
 
     raise ValueError(
         f"Unsupported file type: {suffix}. Supported: .csv, .tsv, .tab, "
-        ".xlsx, .xls, .json, .txt, .data"
+        ".xlsx, .xls, .json, .txt, .data, .bed, .bed.gz"
     )
+
+
+def _load_dataset(file_path: str, sheet_name: str = "") -> pd.DataFrame:
+    return load_dataset_frame(file_path, sheet_name)
+
+
+def _bed_summary(df: pd.DataFrame) -> dict[str, Any]:
+    summary: dict[str, Any] = {}
+    if {"chrom", "chromStart", "chromEnd"}.issubset(df.columns):
+        chrom_counts = df["chrom"].astype(str).value_counts().head(50)
+        inferred_sizes_df = (
+            df.groupby("chrom", dropna=False)["chromEnd"]
+            .max()
+            .sort_values(ascending=False)
+            .reset_index()
+            .rename(columns={"chromEnd": "inferred_size_from_max_chromEnd"})
+        )
+        summary.update(
+            {
+                "bed_field_count": len([c for c in df.columns if c in BED_COLUMNS or c.startswith("extra_")]),
+                "chromosome_or_scaffold_count": int(df["chrom"].nunique(dropna=True)),
+                "top_chromosomes_or_scaffolds": {str(k): int(v) for k, v in chrom_counts.items()},
+                "inferred_chromosome_sizes_top_50": inferred_sizes_df.head(50).to_dict(orient="records"),
+                "coordinate_system_note": (
+                    "BED convention uses zero-based chromStart and half-open chromEnd. "
+                    "Interval length is chromEnd - chromStart."
+                ),
+            }
+        )
+    if "interval_length" in df.columns:
+        lengths = df["interval_length"].dropna()
+        if not lengths.empty:
+            summary["interval_length_summary"] = {
+                "min": float(lengths.min()),
+                "median": float(lengths.median()),
+                "mean": float(lengths.mean()),
+                "max": float(lengths.max()),
+            }
+    if "score" in df.columns:
+        score = pd.to_numeric(df["score"], errors="coerce").dropna()
+        if not score.empty:
+            summary["score_summary"] = {
+                "min": float(score.min()),
+                "median": float(score.median()),
+                "mean": float(score.mean()),
+                "max": float(score.max()),
+            }
+    if "strand" in df.columns:
+        summary["strand_counts"] = {
+            str(k): int(v) for k, v in df["strand"].astype(str).value_counts().items()
+        }
+    return summary
+
+
+def infer_bed_chrom_sizes(file_path: str, genome_sizes_path: str = "") -> dict[str, Any]:
+    """Infer or read chromosome sizes for a BED file.
+
+    Args:
+        file_path: BED file path. Relative paths are resolved inside DATA_DIR.
+        genome_sizes_path: Optional two-column genome sizes file with chrom and size.
+
+    Returns:
+        A dictionary with explicit genome sizes when supplied, otherwise sizes inferred
+        from the maximum chromEnd present in the BED file.
+    """
+
+    try:
+        bed = load_bed_file(file_path)
+        if genome_sizes_path:
+            sizes_path = resolve_data_path(genome_sizes_path)
+            sizes = pd.read_csv(sizes_path, sep=None, engine="python", header=None, names=["chrom", "size"])
+            sizes["size"] = pd.to_numeric(sizes["size"], errors="coerce")
+            return _result(
+                "success",
+                mode="provided_genome_sizes_file",
+                genome_sizes_path=str(sizes_path),
+                chromosome_sizes=sizes.dropna().to_dict(orient="records"),
+            )
+
+        inferred = (
+            bed.groupby("chrom", dropna=False)["chromEnd"]
+            .max()
+            .reset_index()
+            .rename(columns={"chromEnd": "size"})
+            .sort_values("chrom")
+        )
+        return _result(
+            "success",
+            mode="inferred_from_bed_max_chromEnd",
+            warning=(
+                "No genome sizes file was provided. Sizes were inferred from the maximum "
+                "chromEnd in the BED file. This may underestimate true chromosome lengths "
+                "if the BED file does not cover chromosome ends."
+            ),
+            chromosome_sizes=inferred.to_dict(orient="records"),
+        )
+    except Exception as exc:
+        return _result("error", message=str(exc))
 
 
 def list_available_datasets() -> dict[str, Any]:
     """List supported dataset files in the configured DATA_DIR."""
 
-    supported = {".csv", ".tsv", ".tab", ".xlsx", ".xls", ".json", ".txt", ".data"}
     files = []
     for path in sorted(settings.data_dir.glob("**/*")):
-        if path.is_file() and path.suffix.lower() in supported:
+        suffix = _suffix(path)
+        if path.is_file() and (suffix in SUPPORTED_SUFFIXES or suffix == ".bed.gz"):
             files.append(
                 {
                     "relative_path": str(path.relative_to(settings.data_dir)),
                     "size_mb": round(path.stat().st_size / 1_000_000, 3),
-                    "suffix": path.suffix.lower(),
+                    "suffix": suffix,
                 }
             )
 
@@ -117,7 +304,7 @@ def inspect_dataset(file_path: str, sheet_name: str = "") -> dict[str, Any]:
     """
 
     try:
-        path = _resolve_data_path(file_path)
+        path = resolve_data_path(file_path)
         df = _load_dataset(file_path, sheet_name)
     except Exception as exc:
         return _result("error", message=str(exc))
@@ -139,9 +326,20 @@ def inspect_dataset(file_path: str, sheet_name: str = "") -> dict[str, Any]:
             }
         )
 
+    suffix = _suffix(path)
+    extras: dict[str, Any] = {}
+    if suffix in {".bed", ".bed.gz"}:
+        extras["bed_summary"] = _bed_summary(df)
+        extras["format_notes"] = [
+            "BED files are read as tab-delimited genomic intervals.",
+            "The first three columns are interpreted as chrom, chromStart, and chromEnd.",
+            "track, browser, and comment lines are ignored during loading.",
+        ]
+
     return _result(
         "success",
         file_path=str(path),
+        file_type=suffix,
         shape={"rows": rows, "columns": cols},
         memory_usage_mb=round(float(df.memory_usage(deep=True).sum() / 1_000_000), 3),
         duplicate_rows=int(df.duplicated().sum()),
@@ -153,6 +351,7 @@ def inspect_dataset(file_path: str, sheet_name: str = "") -> dict[str, Any]:
         ],
         empty_columns=[str(col) for col in df.columns if df[col].isna().sum() == rows],
         constant_columns=[str(col) for col in df.columns if df[col].nunique(dropna=True) <= 1],
+        **extras,
     )
 
 
@@ -165,6 +364,7 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
     """
 
     try:
+        path = resolve_data_path(file_path)
         df = _load_dataset(file_path, sheet_name)
     except Exception as exc:
         return _result("error", message=str(exc))
@@ -260,8 +460,13 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
     if constant_columns:
         warnings.append({"type": "constant_or_empty_columns", "columns": constant_columns[:30]})
 
+    extras: dict[str, Any] = {}
+    if _suffix(path) in {".bed", ".bed.gz"}:
+        extras["bed_summary"] = _bed_summary(df)
+
     return _result(
         "success",
+        file_type=_suffix(path),
         shape={"rows": rows, "columns": cols},
         column_type_counts={
             "numeric": int(numeric_df.shape[1]),
@@ -274,6 +479,7 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
         top_numeric_correlations=correlations,
         outlier_summary=outliers,
         warnings=warnings,
+        **extras,
     )
 
 
@@ -296,7 +502,7 @@ def create_basic_charts(file_path: str, sheet_name: str = "", output_prefix: str
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    settings.output_dir.mkdir(parents=True, exist_ok=True)
+    settings.plot_output_dir.mkdir(parents=True, exist_ok=True)
     saved = []
 
     numeric_cols = list(df.select_dtypes(include=[np.number]).columns)[:5]
@@ -306,7 +512,7 @@ def create_basic_charts(file_path: str, sheet_name: str = "", output_prefix: str
         plt.title(f"Distribution of {col}")
         plt.xlabel(str(col))
         plt.ylabel("Frequency")
-        out = settings.output_dir / f"{output_prefix}_{col}_hist.png"
+        out = settings.plot_output_dir / f"{output_prefix}_{col}_hist.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
         saved.append(str(out))
@@ -320,9 +526,9 @@ def create_basic_charts(file_path: str, sheet_name: str = "", output_prefix: str
         plt.xlabel(str(col))
         plt.ylabel("Count")
         plt.xticks(rotation=45, ha="right")
-        out = settings.output_dir / f"{output_prefix}_{col}_bar.png"
+        out = settings.plot_output_dir / f"{output_prefix}_{col}_bar.png"
         fig.savefig(out, bbox_inches="tight")
         plt.close(fig)
         saved.append(str(out))
 
-    return _result("success", saved_charts=saved, output_dir=str(settings.output_dir.resolve()))
+    return _result("success", saved_charts=saved, output_dir=str(settings.plot_output_dir.resolve()))
