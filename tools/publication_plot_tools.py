@@ -185,7 +185,9 @@ def list_ggplot2_cases(include_demo_only: bool = True) -> dict[str, Any]:
     """List approved ggplot2 publication-style plot cases.
 
     Args:
-        include_demo_only: If false, return only cases currently configured for real tabular input.
+        include_demo_only: Backward-compatible name. If false, return only cases whose
+            direct real-data adapter is currently implemented. Every case still supports
+            a simulated preview and can be extended to real data with an adapter.
     """
 
     try:
@@ -313,12 +315,16 @@ def render_ggplot2_case(plot_case_id: str, file_path: str = "", sheet_name: str 
     if not case.get("real_data_supported"):
         return _result(
             "error",
-            message=f"Case {plot_case_id} is currently demo-only for predefined simulated data.",
+            message=f"Case {plot_case_id} does not yet have a direct real-data adapter.",
             reason=(
-                "This case expects a complex object such as a list, matrix, graph, or multiple "
-                "linked tables rather than one simple data frame."
+                "The plot can represent real data, but the current integration expects a complex "
+                "object such as a list, matrix, graph, hierarchy, or multiple linked tables rather "
+                "than one simple data frame."
             ),
-            supported_action="Use render_ggplot2_case_demo for this case, or adapt a controlled case-specific importer later.",
+            supported_action=(
+                "Use render_ggplot2_case_demo for a simulated preview, or add a controlled "
+                "case-specific real-data adapter."
+            ),
         )
 
     try:
@@ -365,6 +371,49 @@ def render_ggplot2_case(plot_case_id: str, file_path: str = "", sheet_name: str 
         )
     except Exception as exc:
         return _result("error", message=str(exc))
+
+
+def render_all_ggplot2_case_demos(output_prefix: str = "") -> dict[str, Any]:
+    """Render every approved ggplot2 case from its predefined simulated data.
+
+    The filenames are derived deterministically inside the tool. This prevents agents from
+    accidentally prefixing ``outputs/plots`` twice and creating nested output directories.
+
+    Args:
+        output_prefix: Optional filename prefix, such as ``demo``. Do not include directories.
+    """
+
+    clean_prefix = re.sub(r"[^A-Za-z0-9_.-]+", "_", output_prefix.strip()).strip("._")
+    results: list[dict[str, Any]] = []
+    succeeded = 0
+    failed = 0
+    for case in _cases():
+        case_id = str(case.get("case_id"))
+        filename = f"{clean_prefix + '_' if clean_prefix else ''}{case_id}_demo.png"
+        result = run_ggplot2_case(case_id, input_path="", output_path=filename)
+        status = result.get("status", "error")
+        if status == "success":
+            succeeded += 1
+        else:
+            failed += 1
+        results.append(
+            {
+                "case_id": case_id,
+                "title": case.get("title"),
+                "status": status,
+                "saved_plots": result.get("saved_plots", []),
+                "message": result.get("message", ""),
+                "stderr": result.get("stderr", ""),
+            }
+        )
+    return _result(
+        "success" if failed == 0 else "warning",
+        total=len(results),
+        succeeded=succeeded,
+        failed=failed,
+        results=results,
+        output_dir=str(settings.plot_output_dir.resolve()),
+    )
 
 
 def validate_publication_plot_paths(file_path: str = "") -> dict[str, Any]:

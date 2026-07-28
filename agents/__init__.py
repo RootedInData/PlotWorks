@@ -4,7 +4,10 @@ from .specialists import (
     build_data_intake_agent,
     build_eda_agent,
     build_method_research_agent,
+    build_plot_review_agent,
     build_publication_plot_agent,
+    build_r_plot_developer_agent,
     build_report_agent,
     build_visualization_agent,
+    build_visualization_planner_agent,
 )

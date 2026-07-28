@@ -1,0 +1,633 @@
+{
+  "demo_files": {
+    "general": "demo_general.csv",
+    "time_series": "demo_time_series.csv",
+    "heatmap": "demo_heatmap_long.csv",
+    "gwas": "demo_gwas.csv",
+    "bed": "demo_intervals.bed"
+  },
+  "pretty_python": {
+    "route": "pretty_python",
+    "results": [
+      {
+        "name": "pretty_histogram",
+        "status": "success",
+        "plot_type": "histogram",
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_histogram.png"
+      },
+      {
+        "name": "pretty_barplot",
+        "status": "success",
+        "plot_type": "barplot",
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_barplot.png"
+      },
+      {
+        "name": "pretty_scatter",
+        "status": "success",
+        "plot_type": "scatter",
+        "rows_plotted": 240,
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_scatter.png"
+      },
+      {
+        "name": "pretty_lineplot",
+        "status": "success",
+        "plot_type": "lineplot",
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_lineplot.png"
+      },
+      {
+        "name": "pretty_boxplot",
+        "status": "success",
+        "plot_type": "boxplot",
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_boxplot.png"
+      },
+      {
+        "name": "pretty_violin",
+        "status": "success",
+        "plot_type": "violin",
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_violin.png"
+      },
+      {
+        "name": "pretty_heatmap",
+        "status": "success",
+        "plot_type": "heatmap",
+        "matrix_shape": [
+          10,
+          5
+        ],
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_heatmap.png"
+      },
+      {
+        "name": "pretty_faceted_plot",
+        "status": "success",
+        "plot_type": "faceted_line",
+        "facets": [
+          "Central",
+          "East",
+          "West"
+        ],
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_faceted_line.png"
+      },
+      {
+        "name": "pretty_manhattan",
+        "status": "success",
+        "plot_type": "manhattan",
+        "rows_plotted": 1200,
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_manhattan.png"
+      },
+      {
+        "name": "pretty_genomic_track",
+        "status": "success",
+        "plot_type": "genomic_track",
+        "chromosome": "chr1",
+        "intervals_plotted": 24,
+        "truncation_warning": "",
+        "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_genomic_track.png"
+      },
+      {
+        "name": "create_pretty_charts",
+        "status": "success",
+        "saved_charts": [
+          "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_height_cm_pretty_histogram.png",
+          "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_biomass_g_pretty_histogram.png",
+          "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_yield_kg_pretty_histogram.png",
+          "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_sample_id_pretty_barplot.png",
+          "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_treatment_pretty_barplot.png",
+          "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_height_cm_biomass_g_pretty_scatter.png"
+        ],
+        "attempted_charts": [
+          {
+            "status": "success",
+            "plot_type": "histogram",
+            "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_height_cm_pretty_histogram.png"
+          },
+          {
+            "status": "success",
+            "plot_type": "histogram",
+            "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_biomass_g_pretty_histogram.png"
+          },
+          {
+            "status": "success",
+            "plot_type": "histogram",
+            "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_yield_kg_pretty_histogram.png"
+          },
+          {
+            "status": "success",
+            "plot_type": "barplot",
+            "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_sample_id_pretty_barplot.png"
+          },
+          {
+            "status": "success",
+            "plot_type": "barplot",
+            "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_treatment_pretty_barplot.png"
+          },
+          {
+            "status": "success",
+            "plot_type": "scatter",
+            "rows_plotted": 240,
+            "saved_plot": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_height_cm_biomass_g_pretty_scatter.png"
+          }
+        ],
+        "output_dir": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots"
+      }
+    ],
+    "technical_reviews": [
+      {
+        "name": "pretty_histogram",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_histogram.png",
+          "size_bytes": 70455,
+          "dimensions_pixels": {
+            "width": 1873,
+            "height": 1447
+          },
+          "aspect_ratio": 1.294,
+          "grayscale_variance": 2122.95,
+          "sampled_unique_gray_levels": 198,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_barplot",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_barplot.png",
+          "size_bytes": 92882,
+          "dimensions_pixels": {
+            "width": 1873,
+            "height": 1571
+          },
+          "aspect_ratio": 1.192,
+          "grayscale_variance": 3988.21,
+          "sampled_unique_gray_levels": 213,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_scatter",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_scatter.png",
+          "size_bytes": 338958,
+          "dimensions_pixels": {
+            "width": 1886,
+            "height": 1447
+          },
+          "aspect_ratio": 1.303,
+          "grayscale_variance": 1652.92,
+          "sampled_unique_gray_levels": 254,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_lineplot",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_lineplot.png",
+          "size_bytes": 273745,
+          "dimensions_pixels": {
+            "width": 2524,
+            "height": 1581
+          },
+          "aspect_ratio": 1.596,
+          "grayscale_variance": 1142.2,
+          "sampled_unique_gray_levels": 212,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_boxplot",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_boxplot.png",
+          "size_bytes": 95219,
+          "dimensions_pixels": {
+            "width": 1873,
+            "height": 1540
+          },
+          "aspect_ratio": 1.216,
+          "grayscale_variance": 1844.53,
+          "sampled_unique_gray_levels": 202,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_violin",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_violin.png",
+          "size_bytes": 182838,
+          "dimensions_pixels": {
+            "width": 1873,
+            "height": 1540
+          },
+          "aspect_ratio": 1.216,
+          "grayscale_variance": 1690.3,
+          "sampled_unique_gray_levels": 210,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_heatmap",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_heatmap.png",
+          "size_bytes": 198965,
+          "dimensions_pixels": {
+            "width": 2504,
+            "height": 2021
+          },
+          "aspect_ratio": 1.239,
+          "grayscale_variance": 4995.55,
+          "sampled_unique_gray_levels": 236,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_faceted_plot",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_faceted_line.png",
+          "size_bytes": 359449,
+          "dimensions_pixels": {
+            "width": 2879,
+            "height": 1621
+          },
+          "aspect_ratio": 1.776,
+          "grayscale_variance": 1235.91,
+          "sampled_unique_gray_levels": 233,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_manhattan",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_manhattan.png",
+          "size_bytes": 293329,
+          "dimensions_pixels": {
+            "width": 2757,
+            "height": 1563
+          },
+          "aspect_ratio": 1.764,
+          "grayscale_variance": 1267.38,
+          "sampled_unique_gray_levels": 224,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "pretty_genomic_track",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_pretty_genomic_track.png",
+          "size_bytes": 71207,
+          "dimensions_pixels": {
+            "width": 2914,
+            "height": 1332
+          },
+          "aspect_ratio": 2.188,
+          "grayscale_variance": 628.6,
+          "sampled_unique_gray_levels": 150,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "create_pretty_charts",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_height_cm_pretty_histogram.png",
+          "size_bytes": 51289,
+          "dimensions_pixels": {
+            "width": 1873,
+            "height": 1447
+          },
+          "aspect_ratio": 1.294,
+          "grayscale_variance": 1645.55,
+          "sampled_unique_gray_levels": 167,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "create_pretty_charts",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_biomass_g_pretty_histogram.png",
+          "size_bytes": 59538,
+          "dimensions_pixels": {
+            "width": 1909,
+            "height": 1447
+          },
+          "aspect_ratio": 1.319,
+          "grayscale_variance": 1777.09,
+          "sampled_unique_gray_levels": 179,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "create_pretty_charts",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_yield_kg_pretty_histogram.png",
+          "size_bytes": 53384,
+          "dimensions_pixels": {
+            "width": 1873,
+            "height": 1447
+          },
+          "aspect_ratio": 1.294,
+          "grayscale_variance": 1584.11,
+          "sampled_unique_gray_levels": 165,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "create_pretty_charts",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_sample_id_pretty_barplot.png",
+          "size_bytes": 113647,
+          "dimensions_pixels": {
+            "width": 2572,
+            "height": 1563
+          },
+          "aspect_ratio": 1.646,
+          "grayscale_variance": 2468.44,
+          "sampled_unique_gray_levels": 180,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "create_pretty_charts",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_treatment_pretty_barplot.png",
+          "size_bytes": 61436,
+          "dimensions_pixels": {
+            "width": 2707,
+            "height": 1563
+          },
+          "aspect_ratio": 1.732,
+          "grayscale_variance": 2381.3,
+          "sampled_unique_gray_levels": 102,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      },
+      {
+        "name": "create_pretty_charts",
+        "review": {
+          "status": "success",
+          "file_path": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots/demo_auto_height_cm_biomass_g_pretty_scatter.png",
+          "size_bytes": 206679,
+          "dimensions_pixels": {
+            "width": 1873,
+            "height": 1447
+          },
+          "aspect_ratio": 1.294,
+          "grayscale_variance": 1054.83,
+          "sampled_unique_gray_levels": 225,
+          "channel_extrema": [
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ],
+            [
+              0,
+              255
+            ]
+          ],
+          "warnings": [],
+          "review_scope": "This is a deterministic technical check for file validity, dimensions, and blankness. It does not verify scientific correctness or replace human visual review."
+        }
+      }
+    ],
+    "output_dir": "/mnt/c/Users/bdjor/AI_agentic_wf/Data_analysis_agency/outputs/plots"
+  }
+}

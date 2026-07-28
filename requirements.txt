@@ -6,3 +6,4 @@ numpy
 openpyxl
 python-dotenv
 matplotlib
+Pillow

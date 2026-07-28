@@ -40,6 +40,10 @@ class Settings:
     output_dir: Path = _env_path("OUTPUT_DIR", PACKAGE_DIR / "outputs")
     plot_output_dir: Path = _env_path("PLOT_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "plots")
     report_output_dir: Path = _env_path("REPORT_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "reports")
+    code_output_dir: Path = _env_path("CODE_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "code")
+    r_shared_plot_dir: Path = _env_path(
+        "R_SHARED_PLOT_DIR", PACKAGE_DIR / "r_plot_library" / "shared"
+    )
     ggplot2_cases_dir: Path = _env_path(
         "GGPLOT2_CASES_DIR", PACKAGE_DIR / "r_plot_library" / "ggplot2_cases"
     )
@@ -52,6 +56,11 @@ class Settings:
     ).strip().lower() in {"1", "true", "yes", "y"}
     max_file_mb: int = int(os.getenv("MAX_FILE_MB", "100"))
     max_preview_rows: int = int(os.getenv("MAX_PREVIEW_ROWS", "8"))
+    enable_custom_r_plotting: bool = os.getenv(
+        "ENABLE_CUSTOM_R_PLOTTING", "false"
+    ).strip().lower() in {"1", "true", "yes", "y"}
+    max_generated_r_code_chars: int = int(os.getenv("MAX_GENERATED_R_CODE_CHARS", "30000"))
+    r_plot_timeout_seconds: int = int(os.getenv("R_PLOT_TIMEOUT_SECONDS", "180"))
     enable_web_search: bool = os.getenv("ENABLE_WEB_SEARCH", "false").strip().lower() in {
         "1",
         "true",
@@ -65,3 +74,5 @@ settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.output_dir.mkdir(parents=True, exist_ok=True)
 settings.plot_output_dir.mkdir(parents=True, exist_ok=True)
 settings.report_output_dir.mkdir(parents=True, exist_ok=True)
+settings.code_output_dir.mkdir(parents=True, exist_ok=True)
+settings.r_shared_plot_dir.mkdir(parents=True, exist_ok=True)

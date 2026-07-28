@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
+import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -26,20 +29,39 @@ def _read_manifest() -> dict[str, Any]:
 
 
 def _case_by_id(case_id: str) -> dict[str, Any]:
-    manifest = _read_manifest()
-    for case in manifest.get("cases", []):
+    for case in _read_manifest().get("cases", []):
         if case.get("case_id") == case_id:
             return case
     raise ValueError(f"Unknown ggplot2 case_id: {case_id!r}")
 
 
-def check_r_environment(check_packages: bool = False) -> dict[str, Any]:
-    """Check whether Rscript and the copied ggplot2 case library are available.
+def _safe_managed_filename(output_path: str, default_name: str) -> str:
+    raw = str(output_path).strip() if output_path else default_name
+    candidate = Path(raw)
+    if candidate.name != raw or candidate.parent != Path("."):
+        raise ValueError(
+            "output_path must be a filename only. Do not include outputs/plots or other directories."
+        )
+    suffix = candidate.suffix.lower() or ".png"
+    if suffix != ".png":
+        raise ValueError("Approved ggplot2 case recipes currently produce PNG files only.")
+    stem = re.sub(r"[^A-Za-z0-9_.-]+", "_", candidate.stem).strip("._") or "ggplot2_case"
+    return f"{stem}.png"
 
-    Args:
-        check_packages: If true, ask R to check the packages listed in setup.R.
-            Leave false for a faster structural check.
-    """
+
+def _valid_nonempty_file(path: Path) -> bool:
+    if not path.exists() or not path.is_file() or path.stat().st_size < 100:
+        return False
+    if path.suffix.lower() == ".png":
+        try:
+            return path.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+        except OSError:
+            return False
+    return True
+
+
+def check_r_environment(check_packages: bool = False) -> dict[str, Any]:
+    """Check Rscript, plotting-library paths, and optionally package availability."""
 
     rscript = _rscript_path()
     if rscript is None:
@@ -48,8 +70,8 @@ def check_r_environment(check_packages: bool = False) -> dict[str, Any]:
             message="Rscript was not found on PATH.",
             next_steps=[
                 "Install R on the same system/environment where you run adk run or adk web.",
-                "After installing R, verify with: Rscript --version",
-                "Then run the plotting library setup.R to install required R packages.",
+                "Verify with: Rscript --version",
+                "Then run setup.R in r_plot_library/ggplot2_cases.",
             ],
         )
 
@@ -83,14 +105,20 @@ def check_r_environment(check_packages: bool = False) -> dict[str, Any]:
         code = r'''
         pkgs <- c("ggplot2", "dplyr", "tidyr", "ggrepel", "patchwork",
                   "gghalves", "ggforce", "ggalluvial", "treemapify",
-                  "circlize", "igraph", "ggraph", "viridisLite", "scales")
-        installed <- rownames(installed.packages())
-        missing <- setdiff(pkgs, installed)
-        if (length(missing) > 0) {
-          cat(paste(missing, collapse=","))
+                  "circlize", "igraph", "tidygraph", "graphlayouts",
+                  "ggraph", "viridisLite", "scales", "ggh4x", "ggridges")
+        rows <- lapply(pkgs, function(pkg) {
+          if (requireNamespace(pkg, quietly = TRUE)) {
+            c(package = pkg,
+              version = as.character(packageVersion(pkg)),
+              location = find.package(pkg))
+          } else {
+            c(package = pkg, version = "MISSING", location = "")
+          }
+        })
+        for (row in rows) cat(paste(row, collapse = "\t"), "\n")
+        if (any(vapply(rows, function(x) x[["version"]] == "MISSING", logical(1))))
           quit(status = 10)
-        }
-        cat("OK")
         '''
         proc = subprocess.run(
             [rscript, "-e", code],
@@ -99,29 +127,37 @@ def check_r_environment(check_packages: bool = False) -> dict[str, Any]:
             capture_output=True,
             timeout=120,
         )
-        response["package_check_returncode"] = proc.returncode
-        response["package_check_stdout"] = proc.stdout.strip()
-        response["package_check_stderr"] = proc.stderr.strip()
+        package_rows = []
+        for line in proc.stdout.splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 3:
+                package_rows.append(
+                    {"package": parts[0], "version": parts[1], "location": parts[2]}
+                )
+        missing = [row["package"] for row in package_rows if row["version"] == "MISSING"]
+        response.update(
+            {
+                "package_check_returncode": proc.returncode,
+                "packages": package_rows,
+                "missing_packages": missing,
+                "package_check_stderr": proc.stderr.strip(),
+            }
+        )
         if proc.returncode != 0:
             response["package_status"] = "missing_or_unavailable_packages"
             response["next_steps"] = [
                 f"From the plotting folder, run: Rscript {setup_file}",
-                "If installation fails, install system libraries requested by R, then rerun setup.R.",
-                "The agency can still list cases, inspect data, and run EDA while plotting packages are being fixed.",
+                "On WSL/Linux, prefer available Ubuntu r-cran-* packages for difficult dependencies.",
+                "If ggplot2 and ggraph are incompatible, install the current CRAN ggraph into the user R library.",
             ]
-        else:
-            response["package_status"] = "required packages appear to be installed"
+            return _result("error", **response)
+        response["package_status"] = "required packages appear to be installed"
 
     return _result("success", **response)
 
 
 def validate_path_readability_for_r(input_path: str = "", output_dir: str = "") -> dict[str, Any]:
-    """Verify that Python and R can see the same input/output paths.
-
-    Args:
-        input_path: Optional dataset path. Relative paths are resolved inside DATA_DIR.
-        output_dir: Optional output directory. Defaults to PLOT_OUTPUT_DIR.
-    """
+    """Verify that Python and R can see the same input/output paths."""
 
     rscript = _rscript_path()
     if rscript is None:
@@ -132,7 +168,7 @@ def validate_path_readability_for_r(input_path: str = "", output_dir: str = "") 
         try:
             candidate = Path(str(input_path)).expanduser()
             if candidate.is_absolute():
-                if not candidate.exists():
+                if not candidate.exists() or not candidate.is_file():
                     raise FileNotFoundError(f"File not found: {candidate}")
                 resolved_input = str(candidate.resolve())
             else:
@@ -146,21 +182,12 @@ def validate_path_readability_for_r(input_path: str = "", output_dir: str = "") 
     code = r'''
     input_path <- Sys.getenv("ADK_INPUT_PATH", "")
     output_dir <- Sys.getenv("ADK_OUTPUT_DIR", "")
-    if (nzchar(input_path) && !file.exists(input_path)) {
-      cat(paste0("R cannot read input_path: ", input_path))
-      quit(status = 20)
-    }
-    if (!nzchar(output_dir) || !dir.exists(output_dir)) {
-      cat(paste0("R cannot access output_dir: ", output_dir))
-      quit(status = 21)
-    }
+    if (nzchar(input_path) && !file.exists(input_path)) quit(status = 20)
+    if (!nzchar(output_dir) || !dir.exists(output_dir)) quit(status = 21)
     test_file <- file.path(output_dir, ".adk_r_write_test")
     ok <- tryCatch({ writeLines("ok", test_file); file.remove(test_file); TRUE },
                    error = function(e) FALSE)
-    if (!ok) {
-      cat(paste0("R cannot write to output_dir: ", output_dir))
-      quit(status = 22)
-    }
+    if (!ok) quit(status = 22)
     cat("OK")
     '''
     env = os.environ.copy()
@@ -183,8 +210,8 @@ def validate_path_readability_for_r(input_path: str = "", output_dir: str = "") 
             r_stdout=proc.stdout.strip(),
             r_stderr=proc.stderr.strip(),
             next_steps=[
-                "Use a path that is readable from the environment where ADK is running.",
-                "When running inside WSL, prefer /mnt/c/... paths rather than C:\\... paths.",
+                "Use a path readable from the environment where ADK is running.",
+                "Inside WSL, prefer /mnt/c/... paths rather than C:\\... paths.",
                 "The safest option is to place data files inside the agency data/ directory.",
             ],
         )
@@ -197,14 +224,7 @@ def validate_path_readability_for_r(input_path: str = "", output_dir: str = "") 
 
 
 def run_ggplot2_case(case_id: str, input_path: str = "", output_path: str = "") -> dict[str, Any]:
-    """Run one approved ggplot2 case through Rscript.
-
-    Args:
-        case_id: Approved case id from plot_manifests/ggplot2_cases.json.
-        input_path: Optional standardized CSV/TSV to use instead of simulated data.
-        output_path: Optional final PNG path. If omitted, a timestamped file is written
-            to PLOT_OUTPUT_DIR.
-    """
+    """Run one approved ggplot2 recipe through Rscript with managed paths."""
 
     setup = check_r_environment(check_packages=False)
     if setup.get("status") != "success":
@@ -212,65 +232,52 @@ def run_ggplot2_case(case_id: str, input_path: str = "", output_path: str = "") 
 
     try:
         case = _case_by_id(case_id)
+        case_dir = settings.ggplot2_cases_dir / case["case_dir"]
+        plot_script = case_dir / "plot.R"
+        if not plot_script.exists():
+            raise FileNotFoundError(f"Missing plot.R for case {case_id}: {plot_script}")
+
+        resolved_input = ""
+        if input_path:
+            candidate = Path(input_path).expanduser()
+            if candidate.is_absolute():
+                if not candidate.exists():
+                    raise FileNotFoundError(f"Input file not found: {candidate}")
+                resolved_input = str(candidate.resolve())
+            else:
+                resolved_input = str(resolve_data_path(input_path))
+
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        figure_files = [Path(name).name for name in case.get("figure_files", [f"{case_id}.png"])]
+        default_name = f"{stamp}_{case_id}.png"
+        managed_name = _safe_managed_filename(output_path, default_name)
     except Exception as exc:
         return _result("error", message=str(exc))
 
-    case_dir = settings.ggplot2_cases_dir / case["case_dir"]
-    plot_script = case_dir / "plot.R"
-    if not plot_script.exists():
-        return _result("error", message=f"Missing plot.R for case {case_id}: {plot_script}")
-
-    resolved_input = ""
-    if input_path:
-        try:
-            resolved_input = str(resolve_data_path(input_path)) if not Path(input_path).is_absolute() else str(Path(input_path).resolve())
-        except Exception as exc:
-            return _result("error", message=f"Cannot read input path before R run: {exc}")
-
     settings.plot_output_dir.mkdir(parents=True, exist_ok=True)
-    if output_path:
-        out = Path(output_path).expanduser()
-        if not out.is_absolute():
-            out = settings.plot_output_dir / out
-    else:
-        from datetime import datetime
-        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        first_figure = case.get("figure_files", [f"{case_id}.png"])[0]
-        out = settings.plot_output_dir / f"{stamp}_{case_id}_{Path(first_figure).name}"
-    out.parent.mkdir(parents=True, exist_ok=True)
+    run_dir = settings.code_output_dir / "r_case_runs" / f"{stamp}_{case_id}_{uuid.uuid4().hex[:8]}"
+    run_dir.mkdir(parents=True, exist_ok=False)
+    temporary_single = run_dir / managed_name
 
-    path_check = validate_path_readability_for_r(resolved_input, str(out.parent))
+    path_check = validate_path_readability_for_r(resolved_input, str(run_dir))
     if path_check.get("status") != "success":
         return path_check
 
     env = os.environ.copy()
     env["ADK_INPUT_PATH"] = resolved_input
-    env["ADK_OUTPUT_PATH"] = str(out.resolve())
-    if len(case.get("figure_files", [])) > 1:
-        env["ADK_OUTPUT_DIR"] = str(out.parent.resolve())
-    else:
-        env.pop("ADK_OUTPUT_DIR", None)
+    env["ADK_OUTPUT_PATH"] = str(temporary_single.resolve())
+    env["ADK_OUTPUT_DIR"] = str(run_dir.resolve())
 
     rscript = _rscript_path()
     assert rscript is not None
-    code = f'source("{case["case_dir"]}/plot.R")'
     proc = subprocess.run(
-        [rscript, "-e", code],
+        [rscript, "-e", f'source("{case["case_dir"]}/plot.R")'],
         cwd=str(settings.ggplot2_cases_dir),
         env=env,
         text=True,
         capture_output=True,
-        timeout=300,
+        timeout=max(settings.r_plot_timeout_seconds, 300),
     )
-
-    # Cases with multiple output files use ADK_OUTPUT_DIR and their default basenames.
-    produced = []
-    for fig_name in case.get("figure_files", []):
-        candidate = out.parent / fig_name
-        if candidate.exists():
-            produced.append(str(candidate.resolve()))
-    if out.exists() and str(out.resolve()) not in produced:
-        produced.insert(0, str(out.resolve()))
 
     if proc.returncode != 0:
         return _result(
@@ -279,29 +286,54 @@ def run_ggplot2_case(case_id: str, input_path: str = "", output_path: str = "") 
             returncode=proc.returncode,
             stdout=proc.stdout.strip(),
             stderr=proc.stderr.strip(),
-            attempted_output=str(out.resolve()),
+            run_directory=str(run_dir.resolve()),
             next_steps=[
-                "Check that R and the case-specific packages are installed.",
+                "Check the case-specific R package versions and dependencies.",
                 "Run setup.R from the ggplot2_cases folder if packages are missing.",
-                "Check that the selected case supports the provided data columns.",
+                "Use check_publication_plot_setup(check_r_packages=True) to see package versions and locations.",
             ],
         )
 
-    if not produced:
+    temporary_outputs: list[Path] = []
+    if len(figure_files) == 1:
+        candidates = [temporary_single, run_dir / figure_files[0]]
+        temporary_outputs = [path for path in candidates if _valid_nonempty_file(path)]
+        if temporary_outputs:
+            temporary_outputs = [temporary_outputs[0]]
+    else:
+        temporary_outputs = [run_dir / name for name in figure_files if _valid_nonempty_file(run_dir / name)]
+
+    if not temporary_outputs:
         return _result(
-            "warning",
-            message="R completed but no expected output PNG was found.",
+            "error",
+            message="R completed but no valid expected output PNG was found.",
             stdout=proc.stdout.strip(),
             stderr=proc.stderr.strip(),
-            attempted_output=str(out.resolve()),
+            run_directory=str(run_dir.resolve()),
         )
+
+    final_outputs: list[str] = []
+    requested_stem = Path(managed_name).stem
+    for index, temporary in enumerate(temporary_outputs):
+        if len(temporary_outputs) == 1:
+            final_name = managed_name
+        else:
+            final_name = f"{requested_stem}_{Path(figure_files[index]).stem}.png"
+        final_path = settings.plot_output_dir / final_name
+        if final_path.exists():
+            final_path.unlink()
+        shutil.move(str(temporary), str(final_path))
+        if not _valid_nonempty_file(final_path):
+            return _result("error", message=f"Generated output failed validation: {final_path}")
+        final_outputs.append(str(final_path.resolve()))
 
     return _result(
         "success",
         case_id=case_id,
         used_simulated_data=not bool(resolved_input),
         input_path=resolved_input,
-        saved_plots=produced,
+        saved_plots=final_outputs,
+        run_directory=str(run_dir.resolve()),
         stdout=proc.stdout.strip(),
         stderr=proc.stderr.strip(),
     )

@@ -484,51 +484,16 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
 
 
 def create_basic_charts(file_path: str, sheet_name: str = "", output_prefix: str = "eda") -> dict[str, Any]:
-    """Create basic charts for numeric and categorical columns.
+    """Backward-compatible wrapper around the polished Python chart system.
 
-    Args:
-        file_path: Dataset path. Relative paths are resolved inside DATA_DIR.
-        sheet_name: Optional Excel sheet name. Leave blank for the first sheet.
-        output_prefix: Prefix for saved chart filenames.
+    New code should call ``create_pretty_charts`` or an individual ``pretty_*``
+    function. This wrapper remains so existing prompts and saved workflows do not break.
     """
 
-    try:
-        df = _load_dataset(file_path, sheet_name)
-    except Exception as exc:
-        return _result("error", message=str(exc))
+    from .pretty_plot_tools import create_pretty_charts
 
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    settings.plot_output_dir.mkdir(parents=True, exist_ok=True)
-    saved = []
-
-    numeric_cols = list(df.select_dtypes(include=[np.number]).columns)[:5]
-    for col in numeric_cols:
-        fig = plt.figure()
-        df[col].dropna().plot(kind="hist", bins=30)
-        plt.title(f"Distribution of {col}")
-        plt.xlabel(str(col))
-        plt.ylabel("Frequency")
-        out = settings.plot_output_dir / f"{output_prefix}_{col}_hist.png"
-        fig.savefig(out, bbox_inches="tight")
-        plt.close(fig)
-        saved.append(str(out))
-
-    cat_cols = list(df.select_dtypes(include=["object", "category", "bool"]).columns)[:3]
-    for col in cat_cols:
-        counts = df[col].astype("string").fillna("<MISSING>").value_counts().head(15)
-        fig = plt.figure()
-        counts.plot(kind="bar")
-        plt.title(f"Top values: {col}")
-        plt.xlabel(str(col))
-        plt.ylabel("Count")
-        plt.xticks(rotation=45, ha="right")
-        out = settings.plot_output_dir / f"{output_prefix}_{col}_bar.png"
-        fig.savefig(out, bbox_inches="tight")
-        plt.close(fig)
-        saved.append(str(out))
-
-    return _result("success", saved_charts=saved, output_dir=str(settings.plot_output_dir.resolve()))
+    return create_pretty_charts(
+        file_path=file_path,
+        sheet_name=sheet_name,
+        output_prefix=output_prefix,
+    )
