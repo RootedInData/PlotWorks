@@ -25,7 +25,7 @@ def _matplotlib():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    style_path = settings.package_dir / "plot_styles" / "agency_publication.mplstyle"
+    style_path = settings.package_dir / "plot_styles" / "plotworks_publication.mplstyle"
     if style_path.exists():
         plt.style.use(str(style_path))
     return plt

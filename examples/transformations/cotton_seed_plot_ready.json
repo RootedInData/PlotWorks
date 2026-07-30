@@ -1,0 +1,44 @@
+[
+  {
+    "operation": "filter_rows",
+    "column": "Element",
+    "operator": "in",
+    "value": ["Area harvested", "Yield"]
+  },
+  {
+    "operation": "select_columns",
+    "columns": ["Area", "Year", "Element", "Value"]
+  },
+  {
+    "operation": "pivot_table",
+    "index": ["Area", "Year"],
+    "columns": ["Element"],
+    "values": ["Value"],
+    "aggfunc": "first"
+  },
+  {
+    "operation": "rename_columns",
+    "mapping": {
+      "Value_Area harvested": "area_harvested",
+      "Value_Yield": "yield"
+    }
+  },
+  {
+    "operation": "convert_types",
+    "mapping": {
+      "Year": "integer",
+      "area_harvested": "numeric",
+      "yield": "numeric"
+    }
+  },
+  {
+    "operation": "drop_missing",
+    "subset": ["Area", "Year", "area_harvested", "yield"],
+    "how": "any"
+  },
+  {
+    "operation": "sort_values",
+    "columns": ["Year", "Area"],
+    "ascending": true
+  }
+]

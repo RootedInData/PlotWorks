@@ -212,7 +212,7 @@ def validate_path_readability_for_r(input_path: str = "", output_dir: str = "") 
             next_steps=[
                 "Use a path readable from the environment where ADK is running.",
                 "Inside WSL, prefer /mnt/c/... paths rather than C:\\... paths.",
-                "The safest option is to place data files inside the agency data/ directory.",
+                "The safest option is to place source data files inside the PlotWorks data/ directory.",
             ],
         )
     return _result(

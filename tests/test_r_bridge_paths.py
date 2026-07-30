@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from Data_analysis_agency.tools.r_bridge import _safe_managed_filename
+from PlotWorks.tools.r_bridge import _safe_managed_filename
 
 
 class RBridgePathTests(unittest.TestCase):

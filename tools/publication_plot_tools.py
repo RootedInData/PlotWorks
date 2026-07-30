@@ -334,7 +334,7 @@ def render_ggplot2_case(plot_case_id: str, file_path: str = "", sheet_name: str 
             extra: dict[str, Any] = {}
             if Path(str(file_path)).suffix.lower() == ".bed" or set(["chrom", "chromStart", "chromEnd"]).issubset(df.columns):
                 extra["bed_note"] = (
-                    "This looks like BED-style data. The agency can inspect intervals and infer "
+                    "This looks like BED-style data. PlotWorks can inspect intervals and infer "
                     "chromosome sizes from max chromEnd, but some publication plots require extra "
                     "metadata such as p-values, scores, groups, or labels."
                 )

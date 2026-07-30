@@ -54,24 +54,37 @@ def _result(status: str, **kwargs: Any) -> dict[str, Any]:
 
 
 def resolve_data_path(file_path: str) -> Path:
-    """Resolve a user-provided path against the agency data directory.
+    """Resolve source or PlotWorks-managed transformed data safely.
 
-    Relative paths are resolved inside settings.data_dir. Absolute paths are only
-    allowed when ALLOW_ABSOLUTE_DATA_PATHS=true.
+    Relative paths are searched first inside ``data/`` and then inside
+    ``outputs/data/``. Absolute paths returned by PlotWorks tools are accepted when
+    they remain inside those managed directories. Other absolute paths require
+    ``ALLOW_ABSOLUTE_DATA_PATHS=true``.
     """
 
     clean = str(file_path).strip().strip('"').strip("'")
     candidate = Path(clean).expanduser()
+    managed_roots = [settings.data_dir.resolve(), settings.data_output_dir.resolve()]
 
     if candidate.is_absolute():
-        if not settings.allow_absolute_data_paths:
+        resolved = candidate.resolve()
+        managed = any(root == resolved or root in resolved.parents for root in managed_roots)
+        if not managed and not settings.allow_absolute_data_paths:
             raise PermissionError(
-                "Absolute paths are disabled. Place the data file inside DATA_DIR "
-                f"instead: {settings.data_dir.resolve()}"
+                "Absolute paths outside PlotWorks-managed data directories are disabled. "
+                f"Place source data in {settings.data_dir.resolve()} or use a transformed "
+                f"dataset under {settings.data_output_dir.resolve()}."
             )
-        path = candidate.resolve()
+        path = resolved
     else:
-        path = (settings.data_dir / candidate).resolve()
+        candidates = [
+            (settings.data_dir / candidate).resolve(),
+            (settings.data_output_dir / candidate).resolve(),
+        ]
+        # Allow a tool-returned package-relative path such as outputs/data/transformed/x.csv.
+        if candidate.parts and candidate.parts[0] == "outputs":
+            candidates.insert(0, (settings.package_dir / candidate).resolve())
+        path = next((item for item in candidates if item.exists()), candidates[0])
 
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
@@ -278,21 +291,33 @@ def infer_bed_chrom_sizes(file_path: str, genome_sizes_path: str = "") -> dict[s
 
 
 def list_available_datasets() -> dict[str, Any]:
-    """List supported dataset files in the configured DATA_DIR."""
+    """List source datasets and PlotWorks-managed transformed datasets."""
 
     files = []
-    for path in sorted(settings.data_dir.glob("**/*")):
-        suffix = _suffix(path)
-        if path.is_file() and (suffix in SUPPORTED_SUFFIXES or suffix == ".bed.gz"):
-            files.append(
-                {
-                    "relative_path": str(path.relative_to(settings.data_dir)),
-                    "size_mb": round(path.stat().st_size / 1_000_000, 3),
-                    "suffix": suffix,
-                }
-            )
+    locations = [
+        ("source", settings.data_dir),
+        ("transformed", settings.transformed_data_output_dir),
+    ]
+    for kind, root in locations:
+        for path in sorted(root.glob("**/*")):
+            suffix = _suffix(path)
+            if path.is_file() and (suffix in SUPPORTED_SUFFIXES or suffix == ".bed.gz"):
+                files.append(
+                    {
+                        "kind": kind,
+                        "relative_path": str(path.relative_to(root)),
+                        "managed_path": str(path.resolve()),
+                        "size_mb": round(path.stat().st_size / 1_000_000, 3),
+                        "suffix": suffix,
+                    }
+                )
 
-    return _result("success", data_dir=str(settings.data_dir.resolve()), files=files)
+    return _result(
+        "success",
+        source_data_dir=str(settings.data_dir.resolve()),
+        transformed_data_dir=str(settings.transformed_data_output_dir.resolve()),
+        files=files,
+    )
 
 
 def inspect_dataset(file_path: str, sheet_name: str = "") -> dict[str, Any]:

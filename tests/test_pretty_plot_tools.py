@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from Data_analysis_agency.config import settings
-from Data_analysis_agency.tools.pretty_plot_tools import pretty_barplot, pretty_scatter
+from PlotWorks.config import settings
+from PlotWorks.tools.pretty_plot_tools import pretty_barplot, pretty_scatter
 
 
 class PrettyPlotToolsTests(unittest.TestCase):

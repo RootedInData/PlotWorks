@@ -1,3 +1,9 @@
+from .animation_tools import (
+    check_animation_setup,
+    execute_generated_r_animation,
+    render_animated_scatter,
+    validate_generated_r_animation_code,
+)
 from .custom_r_plot_tools import execute_generated_r_plot, validate_generated_r_plot_code
 from .data_tools import (
     create_basic_charts,
@@ -6,6 +12,13 @@ from .data_tools import (
     list_available_datasets,
     load_dataset_frame,
     run_eda,
+)
+from .data_transformation_tools import (
+    execute_generated_python_transform,
+    list_data_transformation_operations,
+    preview_data_transformations,
+    save_data_transformations,
+    validate_generated_python_transform_code,
 )
 from .plot_review_tools import review_plot_file
 from .pretty_plot_tools import (
@@ -40,14 +53,18 @@ from .visualization_planning_tools import (
 
 __all__ = [
     "VisualizationSpec",
+    "check_animation_setup",
     "check_publication_plot_setup",
     "create_basic_charts",
     "create_pretty_charts",
     "decode_column_roles",
+    "execute_generated_python_transform",
+    "execute_generated_r_animation",
     "execute_generated_r_plot",
     "infer_bed_chrom_sizes",
     "inspect_dataset",
     "list_available_datasets",
+    "list_data_transformation_operations",
     "list_ggplot2_cases",
     "list_pretty_plot_functions",
     "load_dataset_frame",
@@ -62,13 +79,18 @@ __all__ = [
     "pretty_manhattan",
     "pretty_scatter",
     "pretty_violin",
+    "preview_data_transformations",
     "recommend_visualization_plan",
     "render_all_ggplot2_case_demos",
+    "render_animated_scatter",
     "render_ggplot2_case",
     "render_ggplot2_case_demo",
     "review_plot_file",
     "run_eda",
+    "save_data_transformations",
     "save_markdown_report",
+    "validate_generated_python_transform_code",
+    "validate_generated_r_animation_code",
     "validate_generated_r_plot_code",
     "validate_publication_plot_paths",
 ]

@@ -1,9 +1,10 @@
-google-adk
+google-adk>=1.14.0
 litellm
 orjson
 pandas
 numpy
 openpyxl
+xlrd
 python-dotenv
 matplotlib
 Pillow

@@ -1,7 +1,9 @@
 from .specialists import (
+    build_animation_developer_agent,
     build_code_planning_agent,
     build_column_decoder_agent,
     build_data_intake_agent,
+    build_data_transformation_agent,
     build_eda_agent,
     build_method_research_agent,
     build_plot_review_agent,

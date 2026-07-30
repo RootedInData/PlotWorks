@@ -7,7 +7,7 @@ from typing import Any
 from ..config import settings
 
 
-def save_markdown_report(markdown_text: str, file_name: str = "data_analysis_report.md") -> dict[str, Any]:
+def save_markdown_report(markdown_text: str, file_name: str = "plotworks_report.md") -> dict[str, Any]:
     """Save a Markdown report to the configured report output directory.
 
     Args:

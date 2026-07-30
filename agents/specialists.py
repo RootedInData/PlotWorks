@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from google.adk import Agent
+from google.adk.tools.function_tool import FunctionTool
 
 from ..llm_factory import build_model
 from ..prompts import (
+    ANIMATION_DEVELOPER_PROMPT,
     CODE_PLANNING_PROMPT,
     COLUMN_DECODER_PROMPT,
     DATA_INTAKE_PROMPT,
+    DATA_TRANSFORMATION_PROMPT,
     EDA_PROMPT,
     METHOD_RESEARCH_PROMPT,
     PLOT_REVIEW_PROMPT,
@@ -18,13 +21,17 @@ from ..prompts import (
 )
 from ..search_provider import build_search_tools
 from ..tools import (
+    check_animation_setup,
     check_publication_plot_setup,
     create_pretty_charts,
     decode_column_roles,
+    execute_generated_python_transform,
+    execute_generated_r_animation,
     execute_generated_r_plot,
     infer_bed_chrom_sizes,
     inspect_dataset,
     list_available_datasets,
+    list_data_transformation_operations,
     list_ggplot2_cases,
     list_pretty_plot_functions,
     match_ggplot2_cases_to_dataset,
@@ -38,13 +45,18 @@ from ..tools import (
     pretty_manhattan,
     pretty_scatter,
     pretty_violin,
+    preview_data_transformations,
     recommend_visualization_plan,
     render_all_ggplot2_case_demos,
+    render_animated_scatter,
     render_ggplot2_case,
     render_ggplot2_case_demo,
     review_plot_file,
     run_eda,
+    save_data_transformations,
     save_markdown_report,
+    validate_generated_python_transform_code,
+    validate_generated_r_animation_code,
     validate_generated_r_plot_code,
     validate_publication_plot_paths,
 )
@@ -55,8 +67,8 @@ def build_data_intake_agent() -> Agent:
         name="DataIntakeAgent",
         model=build_model(),
         description=(
-            "Finds and structurally inspects local datasets, including BED genomic "
-            "interval files and common tabular formats."
+            "Finds and structurally inspects source and PlotWorks-managed transformed "
+            "datasets, including BED genomic interval files and common tabular formats."
         ),
         instruction=DATA_INTAKE_PROMPT,
         tools=[list_available_datasets, inspect_dataset, infer_bed_chrom_sizes],
@@ -73,13 +85,32 @@ def build_eda_agent() -> Agent:
     )
 
 
+def build_data_transformation_agent() -> Agent:
+    return Agent(
+        name="DataTransformationAgent",
+        model=build_model(),
+        description=(
+            "Previews and saves plot-preparation transformations without modifying "
+            "source data. Deterministic and generated-code writes require user approval."
+        ),
+        instruction=DATA_TRANSFORMATION_PROMPT,
+        tools=[
+            list_data_transformation_operations,
+            preview_data_transformations,
+            validate_generated_python_transform_code,
+            FunctionTool(save_data_transformations, require_confirmation=True),
+            FunctionTool(execute_generated_python_transform, require_confirmation=True),
+        ],
+    )
+
+
 def build_visualization_planner_agent() -> Agent:
     return Agent(
         name="VisualizationPlannerAgent",
         model=build_model(),
         description=(
-            "Plans figures and chooses between approved R recipes, polished pretty_* "
-            "Python functions, and experimental custom R plotting."
+            "Plans figures and chooses among approved R recipes, polished pretty_* "
+            "Python functions, custom static R, and animated R plotting."
         ),
         instruction=VISUALIZATION_PLANNER_PROMPT,
         tools=[
@@ -153,12 +184,32 @@ def build_r_plot_developer_agent() -> Agent:
         name="RPlotDeveloperAgent",
         model=build_model(),
         description=(
-            "Experimentally writes plotting-only R code for novel figures when no "
-            "approved recipe fits. Code is statically validated and executed through a "
-            "restricted build_plot(data) contract."
+            "Experimentally writes plotting-only R code for novel static figures when no "
+            "approved recipe fits. Execution requires validation and user confirmation."
         ),
         instruction=R_PLOT_DEVELOPER_PROMPT,
-        tools=[validate_generated_r_plot_code, execute_generated_r_plot],
+        tools=[
+            validate_generated_r_plot_code,
+            FunctionTool(execute_generated_r_plot, require_confirmation=True),
+        ],
+    )
+
+
+def build_animation_developer_agent() -> Agent:
+    return Agent(
+        name="AnimationDeveloperAgent",
+        model=build_model(),
+        description=(
+            "Creates controlled animated scatter plots and experimental custom "
+            "R/gganimate figures saved as GIF or MP4."
+        ),
+        instruction=ANIMATION_DEVELOPER_PROMPT,
+        tools=[
+            check_animation_setup,
+            render_animated_scatter,
+            validate_generated_r_animation_code,
+            FunctionTool(execute_generated_r_animation, require_confirmation=True),
+        ],
     )
 
 

@@ -1,4 +1,4 @@
-"""Shared visual styling utilities for the Data Analysis Agency."""
+"""Shared visual styling utilities for PlotWorks."""
 
 from .accessibility import contrast_ratio, palette_accessibility_notes
 from .figure_presets import FIGURE_PRESETS, FigurePreset, get_figure_preset
@@ -14,10 +14,10 @@ from .palettes import (
 __all__ = [
     "CATEGORICAL_OKABE_ITO",
     "DIVERGING_BLUE_RED",
-    "MUTED_CATEGORICAL",
-    "SEQUENTIAL_BLUE",
     "FIGURE_PRESETS",
     "FigurePreset",
+    "MUTED_CATEGORICAL",
+    "SEQUENTIAL_BLUE",
     "contrast_ratio",
     "get_figure_preset",
     "get_palette",

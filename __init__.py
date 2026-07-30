@@ -1,8 +1,8 @@
-"""Data Analysis Agency package.
+"""PlotWorks package.
 
-ADK discovers root_agent from agent.py when the package is run as an ADK app.
-The guarded import keeps local utility modules importable in lightweight contexts
-where google-adk has not been installed yet.
+ADK discovers ``root_agent`` from ``agent.py`` when this directory is run as an
+ADK app. The guarded import keeps local utility modules importable in lightweight
+contexts where google-adk has not been installed yet.
 """
 
 try:  # pragma: no cover - exercised by ADK runtime

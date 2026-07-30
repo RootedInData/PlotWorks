@@ -1,6 +1,6 @@
 {
   "version": "1.1",
-  "description": "Approved ggplot2 cases available to the Data Analysis Agency.",
+  "description": "Approved ggplot2 cases available in PlotWorks.",
   "notes": [
     "Only predefined case recipes are allowed for approved-recipe execution.",
     "Every case includes simulated data for reproducible preview and testing.",

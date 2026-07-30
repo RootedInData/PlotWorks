@@ -1,5 +1,32 @@
-__pycache__
+__pycache__/
+*.py[cod]
 .venv/
 .env
+.adk/
+
+# User source data should remain local.
 data/*
-outputs/plots/*.png
+!data/.gitkeep
+
+# Generated PlotWorks artifacts should remain local.
+outputs/**
+!outputs/.gitkeep
+!outputs/plots/
+!outputs/plots/.gitkeep
+!outputs/animations/
+!outputs/animations/.gitkeep
+!outputs/reports/
+!outputs/reports/.gitkeep
+!outputs/code/
+!outputs/code/.gitkeep
+!outputs/data/
+!outputs/data/.gitkeep
+!outputs/data/transformed/
+!outputs/data/transformed/.gitkeep
+
+# R and OS/editor artifacts.
+.Rhistory
+.RData
+Rplots.pdf
+.DS_Store
+*.log

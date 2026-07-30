@@ -16,6 +16,8 @@ class VisualizationSpec:
     x: str = ""
     y: str = ""
     color: str = ""
+    size: str = ""
+    time: str = ""
     facet: str = ""
     label: str = ""
     title: str = ""
@@ -89,6 +91,9 @@ def recommend_visualization_plan(
     elif "violin" in goal:
         plot_family = "violin"
         rationale = "The request asks to compare distribution shapes."
+    elif any(term in goal for term in ["animate", "animated", "animation", "motion"]):
+        plot_family = "animated_scatter"
+        rationale = "The request explicitly asks for an animated visualization."
     elif any(term in goal for term in ["trend", "time", "line"]):
         plot_family = "lineplot"
         rationale = "The request suggests an ordered or time-like relationship."
@@ -109,7 +114,9 @@ def recommend_visualization_plan(
         x, y = numeric[0], ""
         rationale = "The dataset primarily supports a numeric distribution plot."
 
-    if preferred in {"r", "rscript", "ggplot2"}:
+    if any(term in goal for term in ["animate", "animated", "animation", "gganimate"]):
+        renderer = "animated_r"
+    elif preferred in {"r", "rscript", "ggplot2"}:
         renderer = "custom_r"
     elif preferred in {"python", "matplotlib"}:
         renderer = "pretty_python"
@@ -127,6 +134,18 @@ def recommend_visualization_plan(
         x=x,
         y=y,
         color=color,
+        time=(
+            next(
+                (
+                    str(column)
+                    for column in df.columns
+                    if str(column).lower() in {"time", "year", "date", "month", "frame", "state"}
+                ),
+                "",
+            )
+            if renderer == "animated_r"
+            else ""
+        ),
         rationale=rationale,
     )
     return _result(
@@ -139,5 +158,6 @@ def recommend_visualization_plan(
             "approved_r_recipe": "Use when an existing controlled ggplot2 case fits the request.",
             "pretty_python": "Use for routine, reproducible, polished plots from one table.",
             "custom_r": "Use experimentally when no approved recipe fits and R offers meaningful layout advantages.",
+            "animated_r": "Use for movement across an ordered time/state variable; transform the data first when needed.",
         },
     )

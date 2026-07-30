@@ -1,7 +1,7 @@
 # Approved ggplot2 Plot Cases
 
-This directory contains 20 predefined ggplot2 figure recipes available to the
-Data Analysis Agency. Each case includes simulated data for reproducible preview
+This directory contains 20 predefined ggplot2 figure recipes available in
+PlotWorks. Each case includes simulated data for reproducible preview
 and testing.
 
 ![Gallery of the 20 cases](assets/gallery.png)
@@ -10,12 +10,12 @@ Each case normally contains:
 
 ```text
 simulate.R   example-data generator
-plot.R       figure recipe and agency data bridge
+plot.R       figure recipe and PlotWorks data bridge
 figures/     rendered reference output
 ```
 
 All plot types can represent real data. Some cases already have a direct
-one-table adapter in the agency; others need an additional controlled adapter
+one-table adapter in PlotWorks; others need an additional controlled adapter
 for matrices, networks, hierarchies, or multiple linked tables. See the
 project's top-level `README.md` for setup and current integration status.
 

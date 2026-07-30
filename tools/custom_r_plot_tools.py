@@ -158,16 +158,16 @@ def _wrapper_text(script_name: str) -> str:
     return f'''
 options(warn = 1)
 suppressPackageStartupMessages(library(ggplot2))
-source("{shared}/theme_agency.R")
+source("{shared}/theme_plotworks.R")
 source("{shared}/palettes.R")
 source("{shared}/export_presets.R")
 source("{shared}/annotation_helpers.R")
 
-input_path <- Sys.getenv("ADK_CUSTOM_R_INPUT", "")
-output_path <- Sys.getenv("ADK_CUSTOM_R_OUTPUT", "")
-width <- as.numeric(Sys.getenv("ADK_CUSTOM_R_WIDTH", "7.2"))
-height <- as.numeric(Sys.getenv("ADK_CUSTOM_R_HEIGHT", "5.0"))
-dpi <- as.numeric(Sys.getenv("ADK_CUSTOM_R_DPI", "300"))
+input_path <- Sys.getenv("PLOTWORKS_CUSTOM_R_INPUT", "")
+output_path <- Sys.getenv("PLOTWORKS_CUSTOM_R_OUTPUT", "")
+width <- as.numeric(Sys.getenv("PLOTWORKS_CUSTOM_R_WIDTH", "7.2"))
+height <- as.numeric(Sys.getenv("PLOTWORKS_CUSTOM_R_HEIGHT", "5.0"))
+dpi <- as.numeric(Sys.getenv("PLOTWORKS_CUSTOM_R_DPI", "300"))
 
 if (!file.exists(input_path)) stop("Standardized input file is missing")
 data <- read.csv(input_path, check.names = FALSE, stringsAsFactors = FALSE)
@@ -267,11 +267,11 @@ def execute_generated_r_plot(
     env = os.environ.copy()
     env.update(
         {
-            "ADK_CUSTOM_R_INPUT": str(input_csv.resolve()),
-            "ADK_CUSTOM_R_OUTPUT": str(output_path.resolve()),
-            "ADK_CUSTOM_R_WIDTH": str(width),
-            "ADK_CUSTOM_R_HEIGHT": str(height),
-            "ADK_CUSTOM_R_DPI": str(dpi),
+            "PLOTWORKS_CUSTOM_R_INPUT": str(input_csv.resolve()),
+            "PLOTWORKS_CUSTOM_R_OUTPUT": str(output_path.resolve()),
+            "PLOTWORKS_CUSTOM_R_WIDTH": str(width),
+            "PLOTWORKS_CUSTOM_R_HEIGHT": str(height),
+            "PLOTWORKS_CUSTOM_R_DPI": str(dpi),
         }
     )
 
