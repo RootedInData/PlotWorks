@@ -12,6 +12,7 @@ sim <- simulate_stream(seed = 1)
 ord <- sim$bars$taxon[order(sim$bars$mda)]           # ascending for y order
 pal_ph <- c(Actinobacteriota = "#9ECAE1", Firmicutes = "#2C6FB2",
             Proteobacteria = "#9E80C0")
+pal_ph <- plotworks_discrete_values(pal_ph)
 
 bars <- sim$bars |> mutate(taxon = factor(taxon, levels = ord))
 series <- sim$series |> mutate(taxon = factor(taxon, levels = ord))

@@ -1,10 +1,11 @@
 {
-  "version": "1.1",
-  "description": "Approved ggplot2 cases available in PlotWorks.",
+  "version": "1.2",
+  "description": "Approved ggplot2 cases and palette defaults available in PlotWorks.",
   "notes": [
     "Only predefined case recipes are allowed for approved-recipe execution.",
     "Every case includes simulated data for reproducible preview and testing.",
-    "real_data_supported means a direct one-table adapter is currently implemented; false means an adapter is pending, not that the plot is inherently limited to simulated data."
+    "real_data_supported means a direct one-table adapter is currently implemented; false means an adapter is pending, not that the plot is inherently limited to simulated data.",
+    "Palette precedence is explicit user request, then case palette_default, then original recipe colors."
   ],
   "cases": [
     {
@@ -57,7 +58,15 @@
           "trait_value"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "02-grouped-error-dotplot",
@@ -110,7 +119,15 @@
           "trait_value"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "03-multigroup-volcano",
@@ -172,7 +189,15 @@
           "significance_class"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "04-manhattan-twas",
@@ -246,7 +271,15 @@
         ]
       },
       "bed_notes": "BED files can be inspected and summarized. To make this Manhattan plot from BED data, the file must include or be paired with a p-value-like column that can map to P.",
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "05-paired-boxplot",
@@ -329,7 +362,15 @@
           "label"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "06-raincloud",
@@ -382,7 +423,15 @@
           "score"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "07-swimmer",
@@ -461,7 +510,15 @@
           "treatment_week"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "08-stream-area",
@@ -481,7 +538,15 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "09-variance-bars",
@@ -554,7 +619,15 @@
           "sig_group"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "10-circos-fusion",
@@ -574,7 +647,15 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "11-module-network",
@@ -595,7 +676,16 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete",
+        "continuous"
+      ]
     },
     {
       "case_id": "12-sankey-bubble",
@@ -615,7 +705,16 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete",
+        "continuous"
+      ]
     },
     {
       "case_id": "13-discrete-heatmap",
@@ -634,7 +733,15 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "continuous"
+      ]
     },
     {
       "case_id": "14-mantel-heatmap",
@@ -654,7 +761,16 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete",
+        "diverging"
+      ]
     },
     {
       "case_id": "15-multigroup-corr-heatmap",
@@ -673,7 +789,16 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete",
+        "diverging"
+      ]
     },
     {
       "case_id": "16-polar-heatmap",
@@ -692,7 +817,15 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "diverging"
+      ]
     },
     {
       "case_id": "17-multilevel-sankey",
@@ -751,7 +884,15 @@
           "frequency"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "18-treemap",
@@ -800,7 +941,15 @@
           "area"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "19-mosaic-sunburst",
@@ -821,7 +970,15 @@
       "expected_columns": [],
       "optional_columns": [],
       "column_roles": {},
-      "integration_status": "real_data_adapter_pending"
+      "integration_status": "real_data_adapter_pending",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     },
     {
       "case_id": "20-split-violin",
@@ -871,7 +1028,33 @@
           "response"
         ]
       },
-      "integration_status": "direct_real_data_adapter_implemented"
+      "integration_status": "direct_real_data_adapter_implemented",
+      "palette_default": {
+        "provider": "recipe",
+        "name": "",
+        "reverse": false
+      },
+      "palette_modes": [
+        "discrete"
+      ]
     }
-  ]
+  ],
+  "palette_system": {
+    "default": {
+      "provider": "recipe",
+      "name": "",
+      "reverse": false
+    },
+    "precedence": [
+      "explicit_user_request",
+      "case_palette_default",
+      "original_recipe_colors"
+    ],
+    "supported_providers": [
+      "recipe",
+      "plotworks",
+      "ggrateful"
+    ],
+    "future_extension": "Add provider metadata in plot_styles/palettes.py and provider color retrieval in r_plot_library/shared/palettes.R."
+  }
 }

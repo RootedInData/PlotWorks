@@ -10,6 +10,7 @@ source("cases/09-variance-bars/simulate.R")
 dat <- adk_load_or_simulate("09-variance-bars", simulate_qpcr(seed = 1))
 pal_time <- c(Mock = "#9ECAE1", `06h` = "#4292C6",
               `12h` = "#F4D03F", `24h` = "#08519C")
+pal_time <- plotworks_discrete_values(pal_time)
 dw <- 0.8
 
 p <- ggplot(dat, aes(stress, mean, fill = time)) +

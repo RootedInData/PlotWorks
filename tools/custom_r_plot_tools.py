@@ -28,6 +28,7 @@ _ALLOWED_R_PACKAGES = {
     "viridisLite",
     "grid",
     "gridExtra",
+    "ggrateful",
 }
 
 _FORBIDDEN_CALLS = {
@@ -108,8 +109,6 @@ def validate_generated_r_plot_code(code: str) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
 
-    if not settings.enable_custom_r_plotting:
-        errors.append("Custom R plotting is disabled. Set ENABLE_CUSTOM_R_PLOTTING=true to enable it.")
     if not source.strip():
         errors.append("No R code was supplied.")
     if len(source) > settings.max_generated_r_code_chars:
@@ -335,7 +334,7 @@ def execute_generated_r_plot(
         run_metadata=str(metadata_path.resolve()),
         validation=validation,
         warning=(
-            "Custom R plotting is experimental. Static validation reduces risk but is not a full OS-level sandbox. "
+            "Custom R plotting uses static validation and managed execution, but this is not a full OS-level sandbox. "
             "Review the saved script and figure before professional use."
         ),
     )

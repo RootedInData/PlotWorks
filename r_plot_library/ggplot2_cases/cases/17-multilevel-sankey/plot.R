@@ -12,6 +12,7 @@ dat <- adk_load_or_simulate("17-multilevel-sankey", simulate_biogeo(seed = 1))
 cont_cols <- setNames(grDevices::hcl(
   seq(15, 375, length.out = nlevels(dat$Continent) + 1)[-1], 75, 60),
   levels(dat$Continent))
+cont_cols <- plotworks_discrete_values(cont_cols)
 
 p <- ggplot(dat, aes(axis1 = Global, axis2 = Continent, axis3 = LandCoverType,
                      axis4 = Habitat, y = freq)) +

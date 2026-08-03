@@ -2,6 +2,7 @@
 # Case 10 - Circos fusion-gene plot (circlize). Run from gallery root.
 
 library(circlize)
+source("../shared/palettes.R")
 source("R/adk_data_bridge.R")
 source("cases/10-circos-fusion/simulate.R")
 
@@ -17,7 +18,7 @@ chr_df <- data.frame(chr = names(lens), start = 0, end = as.numeric(lens),
 gene_bed <- data.frame(chr = loci$chr, start = loci$pos, end = loci$pos + 1e5,
                        gene = loci$gene, stringsAsFactors = FALSE)
 
-pal <- c(TFE3 = "#C0392B", TFEB = "#2E8B57")
+pal <- plotworks_discrete_values(c(TFE3 = "#C0392B", TFEB = "#2E8B57"))
 
 png(adk_output_path("cases/10-circos-fusion/figures/circos_fusion.png"),
     width = 2200, height = 2200, res = 300)

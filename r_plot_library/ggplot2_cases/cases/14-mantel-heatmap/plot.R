@@ -26,6 +26,10 @@ mant <- sim$mantel |>
          x = vi, y = vi)
 # thin to reduce clutter: keep the stronger / significant links
 mant <- mant |> filter(mr > 0.28 | mp < 0.05)
+corr_cols <- plotworks_diverging_values(c("#2166AC", "white", "#B2182B"), n = 11)
+mantel_p_cols <- plotworks_discrete_values(c(
+  "< 0.01" = "#D6604D", "0.01 - 0.05" = "#1B9E77", ">= 0.05" = "grey75"
+))
 
 p <- ggplot() +
   geom_tile(data = tiles, aes(j, i, fill = r), colour = "white",
@@ -45,10 +49,9 @@ p <- ggplot() +
   geom_text(data = data.frame(x = spec_x, y = spec_y, spec = names(spec_y)),
             aes(x + 0.3, y, label = spec), hjust = 0, fontface = "bold",
             size = 3) +
-  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B",
-                       midpoint = 0, limits = c(-1, 1), name = "Spearman's r") +
-  scale_colour_manual(values = c("< 0.01" = "#D6604D",
-                       "0.01 - 0.05" = "#1B9E77", ">= 0.05" = "grey75"),
+  scale_fill_gradientn(colours = corr_cols, limits = c(-1, 1),
+                       name = "Spearman's r") +
+  scale_colour_manual(values = mantel_p_cols,
                        name = "Mantel's p", drop = FALSE) +
   scale_linewidth_manual(values = c("< 0.2" = 0.3, "0.2 - 0.4" = 0.8,
                        ">= 0.4" = 1.6), name = "Mantel's r", drop = FALSE) +

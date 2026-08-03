@@ -157,7 +157,7 @@ def recommend_visualization_plan(
         routing_guidance={
             "approved_r_recipe": "Use when an existing controlled ggplot2 case fits the request.",
             "pretty_python": "Use for routine, reproducible, polished plots from one table.",
-            "custom_r": "Use experimentally when no approved recipe fits and R offers meaningful layout advantages.",
+            "custom_r": "Use when no approved recipe fits and R offers meaningful layout advantages.",
             "animated_r": "Use for movement across an ordered time/state variable; transform the data first when needed.",
         },
     )

@@ -603,11 +603,6 @@ def validate_generated_python_transform_code(code: str) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
 
-    if not settings.enable_custom_data_transformations:
-        errors.append(
-            "Custom data transformations are disabled. Set "
-            "ENABLE_CUSTOM_DATA_TRANSFORMATIONS=true to enable them."
-        )
     if not source.strip():
         errors.append("No Python code was supplied.")
     if len(source) > settings.max_generated_transform_code_chars:
@@ -858,7 +853,7 @@ def execute_generated_python_transform(
         transformed_shape={"rows": int(transformed.shape[0]), "columns": int(transformed.shape[1])},
         transformed_columns=[str(column) for column in transformed.columns],
         warning=(
-            "Custom data transformation code is experimental. Static validation and "
+            "Custom data transformation code uses static validation and "
             "an isolated subprocess reduce risk but are not a full OS-level sandbox."
         ),
     )

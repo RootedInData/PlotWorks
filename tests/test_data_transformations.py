@@ -4,9 +4,7 @@ import hashlib
 import json
 import shutil
 import unittest
-from dataclasses import replace
 from pathlib import Path
-from unittest.mock import patch
 
 import pandas as pd
 
@@ -81,31 +79,27 @@ class DataTransformationTests(unittest.TestCase):
         self.assertTrue(result["source_unchanged"])
 
     def test_custom_transform_validation_blocks_file_access(self) -> None:
-        enabled = replace(settings, enable_custom_data_transformations=True)
         code = """
 def transform_data(data):
     open('unsafe.txt', 'w')
     return data
 """
-        with patch("PlotWorks.tools.data_transformation_tools.settings", enabled):
-            result = validate_generated_python_transform_code(code)
+        result = validate_generated_python_transform_code(code)
         self.assertEqual(result["status"], "error")
         self.assertTrue(any("open" in item for item in result["errors"]))
 
     def test_custom_transform_executes_in_managed_output(self) -> None:
-        enabled = replace(settings, enable_custom_data_transformations=True)
         code = """
 def transform_data(data):
     result = data.copy()
     result["Value2"] = result["Value"] * 2
     return result
 """
-        with patch("PlotWorks.tools.data_transformation_tools.settings", enabled):
-            result = execute_generated_python_transform(
-                code,
-                self.input_path.name,
-                "_tests/custom_transform.csv",
-            )
+        result = execute_generated_python_transform(
+            code,
+            self.input_path.name,
+            "_tests/custom_transform.csv",
+        )
         self.assertEqual(result["status"], "success")
         self.assertTrue(Path(result["saved_dataset"]).exists())
         self.assertTrue(result["source_unchanged"])

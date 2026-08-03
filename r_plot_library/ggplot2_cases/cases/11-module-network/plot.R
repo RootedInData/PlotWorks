@@ -12,6 +12,8 @@ g <- simulate_network(seed = 1)
 
 pal_type <- c(metabolite = "#B2182B", mRNA = "#EF8A62",
               `phospho-protein` = "#67A9CF", protein = "#1B9E77")
+pal_type <- plotworks_discrete_values(pal_type)
+edge_cols <- plotworks_continuous_values(c("#FCBBA1", "#67000D"), n = 11)
 
 set.seed(11)                                   # fix the force layout
 p <- ggraph(g, layout = "fr") +
@@ -23,7 +25,7 @@ p <- ggraph(g, layout = "fr") +
                  point.padding = 0.1, force = 3, segment.size = 0.15,
                  segment.colour = "grey70", bg.color = "white",
                  bg.r = 0.08) +
-  scale_edge_colour_gradient(low = "#FCBBA1", high = "#67000D",
+  scale_edge_colour_gradientn(colours = edge_cols,
                              name = "Correlation",
                              breaks = c(0.5, 0.6, 0.7, 0.8, 0.9)) +
   scale_fill_manual(values = pal_type, name = "Type") +

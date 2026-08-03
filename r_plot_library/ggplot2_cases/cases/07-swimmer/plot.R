@@ -15,6 +15,7 @@ n_pat <- nrow(dat)
 
 pal_resp <- c(CR = "#4E9A51", PR = "#A6D96A", SD = "#9ECAE1",
               `Tumour shrinkage` = "#4292C6", PD = "#BDBDBD")
+pal_resp <- plotworks_discrete_values(pal_resp)
 
 # event-marker layers
 ong <- filter(dat, ongoing)

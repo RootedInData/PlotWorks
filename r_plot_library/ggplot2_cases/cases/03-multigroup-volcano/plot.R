@@ -20,6 +20,10 @@ bg <- dat |>
 n_cl <- max(dat$cluster)
 strip_cols <- grDevices::hcl(h = seq(15, 375, length.out = n_cl + 1)[-1],
                              c = 90, l = 65)
+strip_cols <- plotworks_discrete_values(strip_cols)
+pal_type <- plotworks_discrete_values(
+  c(UP_Highly = "#D6403A", Down_Highly = "#2C6FB2")
+)
 
 # Genes to label: the single most extreme up gene and down gene per cluster,
 # so up-labels sit high and down-labels sit low (less crowding than picking the
@@ -48,8 +52,7 @@ p <- ggplot(dat, aes(cluster, avg_log2FC)) +
             size = 1.9, max.overlaps = Inf, seed = 1, segment.size = 0.15,
             direction = "y", ylim = c(NA, -1.5), box.padding = 0.3,
             show.legend = FALSE) +
-  scale_colour_manual(values = c(UP_Highly = "#D6403A", Down_Highly = "#2C6FB2"),
-                      name = NULL) +
+  scale_colour_manual(values = pal_type, name = NULL) +
   scale_fill_manual(values = strip_cols) +
   scale_x_continuous(breaks = seq_len(n_cl)) +
   labs(x = NULL, y = expression("average log"[2] * "FC")) +

@@ -34,6 +34,7 @@ _ALLOWED_ANIMATION_PACKAGES = {
     "transformr",
     "gifski",
     "av",
+    "ggrateful",
 }
 
 _FORBIDDEN_CALLS = {
@@ -466,10 +467,6 @@ def validate_generated_r_animation_code(code: str) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
 
-    if not settings.enable_custom_r_animations:
-        errors.append(
-            "Custom R animations are disabled. Set ENABLE_CUSTOM_R_ANIMATIONS=true to enable them."
-        )
     if not source.strip():
         errors.append("No R code was supplied.")
     if len(source) > settings.max_generated_r_code_chars:
@@ -699,7 +696,7 @@ def execute_generated_r_animation(
         run_metadata=str(metadata_path.resolve()),
         validation=validation,
         warning=(
-            "Custom R animations are experimental. Static validation reduces risk but "
+            "Custom R animations use static validation and managed rendering, but "
             "is not a full OS-level sandbox. Review the saved code and animation."
         ),
     )

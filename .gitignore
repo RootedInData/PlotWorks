@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .env
 .adk/
+*private*
 
 # User source data should remain local.
 data/*

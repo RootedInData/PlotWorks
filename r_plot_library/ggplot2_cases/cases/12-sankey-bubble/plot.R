@@ -21,6 +21,8 @@ links$pathway  <- factor(links$pathway, levels = ord, labels = wrapf(ord))
 bubble$pathway <- factor(bubble$pathway, levels = ord)
 # unnamed palette maps to factor levels by order (labels differ per panel)
 pal_pw <- grDevices::hcl(seq(15, 375, length.out = length(ord) + 1)[-1], 70, 62)
+pal_pw <- plotworks_discrete_values(pal_pw)
+hit_ratio_cols <- plotworks_continuous_values(c("#FDD49E", "#7F0000"), n = 11)
 
 # --- Sankey (metabolite -> pathway) ---
 p_sankey <- ggplot(links, aes(axis1 = metabolite, axis2 = pathway, y = freq)) +
@@ -39,7 +41,7 @@ p_sankey <- ggplot(links, aes(axis1 = metabolite, axis2 = pathway, y = freq)) +
 # --- Bubble (enrichment) ---
 p_bubble <- ggplot(bubble, aes(neglogP, pathway)) +
   geom_point(aes(size = count, colour = hit_ratio)) +
-  scale_colour_gradient(low = "#FDD49E", high = "#7F0000", name = "Hit Ratio") +
+  scale_colour_gradientn(colours = hit_ratio_cols, name = "Hit Ratio") +
   scale_size_continuous(range = c(1.5, 6), name = "count") +
   scale_y_discrete(position = "right") +
   labs(x = expression(-log[10](Pvalue)), y = NULL) +

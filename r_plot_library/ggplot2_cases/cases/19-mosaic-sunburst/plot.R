@@ -9,6 +9,7 @@ source("cases/19-mosaic-sunburst/simulate.R")
 sim <- simulate_geneset(seed = 1)
 pal_cls <- c(Core = "#E8563F", Softcore = "#4FB0C6",
              Dispensable = "#3E9B6E", Private = "#3B4F8C")
+pal_cls <- plotworks_discrete_values(pal_cls)
 
 # --- Mosaic: bar widths ~ group total, heights ~ class proportion ---
 gt <- sim$mosaic |> distinct(group, total) |>
@@ -40,7 +41,7 @@ save_case(p_mosaic, adk_output_path("cases/19-mosaic-sunburst/figures/mosaic.png
 # --- Sunburst: two stacked rings in polar coordinates ---
 sun <- sim$sun
 inner <- sun |> group_by(inner) |> summarise(n = sum(n), .groups = "drop")
-pal_sun <- c(Core = "#E8563F", Softcore = "#3B6BA5", Dispensable = "#3E9B6E")
+pal_sun <- plotworks_discrete_values(c(Core = "#E8563F", Softcore = "#3B6BA5", Dispensable = "#3E9B6E"))
 
 p_sun <- ggplot() +
   geom_col(data = inner, aes(x = 1, y = n, fill = inner), colour = "white",

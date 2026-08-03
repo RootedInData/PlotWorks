@@ -19,6 +19,25 @@ one-table adapter in PlotWorks; others need an additional controlled adapter
 for matrices, networks, hierarchies, or multiple linked tables. See the
 project's top-level `README.md` for setup and current integration status.
 
+## Palette comparison
+
+All 20 recipes source the shared PlotWorks palette helper. By default they keep
+each recipe's original colors. Controlled render calls can instead select a
+PlotWorks-native palette or one of the 16 palettes from the optional `ggrateful`
+R package. The package also identifies five palettes with official continuous
+gradient variants; other palettes can be interpolated for comparison and are
+reported with a warning.
+
+Run `setup.R` to install required packages, including `ggrateful` through
+`remotes::install_github("RandomForestz/ggrateful")`. Use PlotWorks' approved
+case renderer for individual palette requests. To compare all 16 or selected
+`ggrateful` palettes on one case outside the agent, run
+`tests/render_case_palette_variants.py` from the directory containing the
+`PlotWorks/` package.
+
+Case-specific defaults are stored in the existing
+`plot_manifests/ggplot2_cases.json` file and do not alter the recipe source.
+
 ## Plot catalog
 
 | # | Figure type | Typical use |

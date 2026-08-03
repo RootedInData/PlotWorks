@@ -9,7 +9,7 @@ source("cases/02-grouped-error-dotplot/simulate.R")
 
 dat <- adk_load_or_simulate("02-grouped-error-dotplot", simulate_coloc(seed = 1))
 dw  <- 0.6                                   # dodge width
-pal <- c(siCtrl = "#B0A18F", siGNPTAB = "#2E86AB")
+pal <- plotworks_discrete_values(c(siCtrl = "#B0A18F", siGNPTAB = "#2E86AB"))
 
 # x positions of each dodged column, for the +/- table and significance stars.
 xpos <- expand.grid(siRNA = levels(dat$siRNA), cond = levels(dat$cond))

@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import settings
+from ..plot_styles.palettes import list_palette_catalog, validate_palette_choice
 from .data_tools import _json_safe, load_dataset_frame, resolve_data_path
 from .r_bridge import check_r_environment, run_ggplot2_case, validate_path_readability_for_r
 
@@ -34,6 +35,23 @@ def _case(case_id: str) -> dict[str, Any]:
         if item.get("case_id") == case_id:
             return item
     raise ValueError(f"Unknown ggplot2 case_id: {case_id!r}")
+
+
+def _safe_relative_output_subfolder(value: str) -> Path:
+    raw = str(value).strip().replace("\\", "/")
+    if not raw:
+        return Path()
+    candidate = Path(raw)
+    if candidate.is_absolute() or any(part in {"", ".", ".."} for part in candidate.parts):
+        raise ValueError("output_subfolder must be a safe relative path beneath outputs/plots")
+    parts = []
+    for part in candidate.parts:
+        clean = re.sub(r"[^A-Za-z0-9_.-]+", "_", part).strip("._")
+        if not clean:
+            raise ValueError("output_subfolder contains an invalid component")
+        parts.append(clean)
+    return Path(*parts)
+
 
 
 def _norm(name: str) -> str:
@@ -204,8 +222,75 @@ def list_ggplot2_cases(include_demo_only: bool = True) -> dict[str, Any]:
                     "expected_columns": c.get("expected_columns"),
                     "optional_columns": c.get("optional_columns"),
                     "keywords": c.get("keywords"),
+                    "palette_default": c.get("palette_default", {"provider": "recipe", "name": "", "reverse": False}),
+                    "palette_modes": c.get("palette_modes", []),
                 }
                 for c in cases
+            ],
+        )
+    except Exception as exc:
+        return _result("error", message=str(exc))
+
+
+def list_plot_palettes(provider: str = "") -> dict[str, Any]:
+    """List palette providers and palette metadata available to approved R cases.
+
+    Args:
+        provider: Optional provider name: recipe, plotworks, or ggrateful.
+    """
+
+    try:
+        return _result("success", providers=list_palette_catalog(provider))
+    except Exception as exc:
+        return _result("error", message=str(exc))
+
+
+def set_ggplot2_case_palette_default(
+    plot_case_id: str,
+    provider: str = "recipe",
+    palette_name: str = "",
+    reverse: bool = False,
+) -> dict[str, Any]:
+    """Persist the default palette for one approved case in the existing manifest.
+
+    This is a configuration write and should be exposed through an ADK confirmation-required
+    FunctionTool. Use provider='recipe' with a blank palette_name to restore the original colors.
+    """
+
+    try:
+        choice = validate_palette_choice(provider, palette_name)
+        manifest = _load_manifest()
+        target = None
+        for case in manifest.get("cases", []):
+            if case.get("case_id") == plot_case_id:
+                target = case
+                break
+        if target is None:
+            raise ValueError(f"Unknown ggplot2 case_id: {plot_case_id!r}")
+
+        previous = target.get(
+            "palette_default", {"provider": "recipe", "name": "", "reverse": False}
+        )
+        updated = {
+            "provider": choice["provider"],
+            "name": choice["palette_name"],
+            "reverse": bool(reverse) if choice["provider"] != "recipe" else False,
+        }
+        target["palette_default"] = updated
+
+        temporary = settings.ggplot2_cases_manifest.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(settings.ggplot2_cases_manifest)
+        return _result(
+            "success",
+            case_id=plot_case_id,
+            previous_default=previous,
+            palette_default=updated,
+            manifest_path=str(settings.ggplot2_cases_manifest.resolve()),
+            precedence=[
+                "explicit_user_request",
+                "case_palette_default",
+                "original_recipe_colors",
             ],
         )
     except Exception as exc:
@@ -269,22 +354,50 @@ def match_ggplot2_cases_to_dataset(file_path: str, sheet_name: str = "") -> dict
     return decode_column_roles(file_path=file_path, plot_case_id="", sheet_name=sheet_name)
 
 
-def render_ggplot2_case_demo(plot_case_id: str, output_name: str = "") -> dict[str, Any]:
+def render_ggplot2_case_demo(
+    plot_case_id: str,
+    output_name: str = "",
+    palette_provider: str = "",
+    palette_name: str = "",
+    palette_reverse: bool = False,
+    output_subfolder: str = "",
+) -> dict[str, Any]:
     """Render a publication-style plot using the case's simulated data.
 
     Args:
         plot_case_id: Approved case id from list_ggplot2_cases.
         output_name: Optional output PNG filename.
+        palette_provider: Optional palette provider. Blank uses the case default.
+        palette_name: Palette name within the selected provider.
+        palette_reverse: Reverse the selected palette.
+        output_subfolder: Safe relative folder beneath outputs/plots.
     """
 
     try:
-        _case(plot_case_id)  # validate approved case
-        return run_ggplot2_case(plot_case_id, input_path="", output_path=output_name)
+        _case(plot_case_id)
+        return run_ggplot2_case(
+            plot_case_id,
+            input_path="",
+            output_path=output_name,
+            palette_provider=palette_provider,
+            palette_name=palette_name,
+            palette_reverse=palette_reverse,
+            output_subfolder=output_subfolder,
+        )
     except Exception as exc:
         return _result("error", message=str(exc))
 
 
-def render_ggplot2_case(plot_case_id: str, file_path: str = "", sheet_name: str = "", output_name: str = "") -> dict[str, Any]:
+def render_ggplot2_case(
+    plot_case_id: str,
+    file_path: str = "",
+    sheet_name: str = "",
+    output_name: str = "",
+    palette_provider: str = "",
+    palette_name: str = "",
+    palette_reverse: bool = False,
+    output_subfolder: str = "",
+) -> dict[str, Any]:
     """Render an approved ggplot2 publication-style plot.
 
     Args:
@@ -292,6 +405,10 @@ def render_ggplot2_case(plot_case_id: str, file_path: str = "", sheet_name: str 
         file_path: Optional real dataset path. If blank, use render_ggplot2_case_demo instead.
         sheet_name: Optional Excel sheet name. Leave blank for the first sheet.
         output_name: Optional output PNG filename.
+        palette_provider: Optional palette provider. Blank uses the case default.
+        palette_name: Palette name within the selected provider.
+        palette_reverse: Reverse the selected palette.
+        output_subfolder: Safe relative folder beneath outputs/plots.
 
     Notes:
         This tool never runs arbitrary user-supplied R code. It only calls approved plot recipes
@@ -358,7 +475,15 @@ def render_ggplot2_case(plot_case_id: str, file_path: str = "", sheet_name: str 
         standardized.to_csv(std_path, index=False)
 
         out_name = output_name or f"{stamp}_{plot_case_id}.png"
-        run = run_ggplot2_case(plot_case_id, input_path=str(std_path), output_path=out_name)
+        run = run_ggplot2_case(
+            plot_case_id,
+            input_path=str(std_path),
+            output_path=out_name,
+            palette_provider=palette_provider,
+            palette_name=palette_name,
+            palette_reverse=palette_reverse,
+            output_subfolder=output_subfolder,
+        )
         return _result(
             run.get("status", "error"),
             case_id=plot_case_id,
@@ -373,14 +498,17 @@ def render_ggplot2_case(plot_case_id: str, file_path: str = "", sheet_name: str 
         return _result("error", message=str(exc))
 
 
-def render_all_ggplot2_case_demos(output_prefix: str = "") -> dict[str, Any]:
-    """Render every approved ggplot2 case from its predefined simulated data.
+def render_all_ggplot2_case_demos(
+    output_prefix: str = "",
+    palette_provider: str = "",
+    palette_name: str = "",
+    palette_reverse: bool = False,
+    output_subfolder: str = "",
+) -> dict[str, Any]:
+    """Render every approved ggplot2 case from predefined simulated data.
 
-    The filenames are derived deterministically inside the tool. This prevents agents from
-    accidentally prefixing ``outputs/plots`` twice and creating nested output directories.
-
-    Args:
-        output_prefix: Optional filename prefix, such as ``demo``. Do not include directories.
+    Blank palette arguments use each case's manifest default. Filenames are derived
+    inside the tool to prevent nested outputs/plots paths.
     """
 
     clean_prefix = re.sub(r"[^A-Za-z0-9_.-]+", "_", output_prefix.strip()).strip("._")
@@ -390,7 +518,15 @@ def render_all_ggplot2_case_demos(output_prefix: str = "") -> dict[str, Any]:
     for case in _cases():
         case_id = str(case.get("case_id"))
         filename = f"{clean_prefix + '_' if clean_prefix else ''}{case_id}_demo.png"
-        result = run_ggplot2_case(case_id, input_path="", output_path=filename)
+        result = run_ggplot2_case(
+            case_id,
+            input_path="",
+            output_path=filename,
+            palette_provider=palette_provider,
+            palette_name=palette_name,
+            palette_reverse=palette_reverse,
+            output_subfolder=output_subfolder,
+        )
         status = result.get("status", "error")
         if status == "success":
             succeeded += 1
@@ -401,19 +537,22 @@ def render_all_ggplot2_case_demos(output_prefix: str = "") -> dict[str, Any]:
                 "case_id": case_id,
                 "title": case.get("title"),
                 "status": status,
+                "palette": result.get("palette", {}),
                 "saved_plots": result.get("saved_plots", []),
                 "message": result.get("message", ""),
                 "stderr": result.get("stderr", ""),
             }
         )
+    base = settings.plot_output_dir / _safe_relative_output_subfolder(output_subfolder)
     return _result(
         "success" if failed == 0 else "warning",
         total=len(results),
         succeeded=succeeded,
         failed=failed,
         results=results,
-        output_dir=str(settings.plot_output_dir.resolve()),
+        output_dir=str(base.resolve()),
     )
+
 
 
 def validate_publication_plot_paths(file_path: str = "") -> dict[str, Any]:

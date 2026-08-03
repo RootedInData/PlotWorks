@@ -7,6 +7,15 @@
 
 suppressPackageStartupMessages(library(ggplot2))
 
+# Palette-provider helpers live one level above the copied case library.
+# All approved recipes source this theme file, so palette support remains
+# centralized rather than duplicated across 20 cases.
+plotworks_palette_helper <- file.path("..", "shared", "palettes.R")
+if (!file.exists(plotworks_palette_helper)) {
+  stop("Missing PlotWorks palette helper: ", plotworks_palette_helper)
+}
+source(plotworks_palette_helper)
+
 # A clean journal theme: black axes, no grid by default, blank strip background.
 theme_case <- function(base_size = 11, base_family = "") {
   theme_bw(base_size = base_size, base_family = base_family) +

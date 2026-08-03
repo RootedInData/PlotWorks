@@ -18,14 +18,14 @@ grid <- sim$grid |>
 
 # labels around the outside
 lab <- vars |> mutate(x = as.integer(var), y = length(sim$rings) + 2.4)
+corr_cols <- plotworks_diverging_values(c("#2166AC", "white", "#B2182B"), n = 11)
 
 p <- ggplot(grid, aes(x = as.integer(var), y = y, fill = r)) +
   geom_tile(aes(colour = sig), width = 0.95, height = 0.95, linewidth = 0.5) +
   geom_text(aes(label = sprintf("%.2f", r)), size = 1.7) +
   geom_text(data = lab, aes(x = x, y = y, label = var), inherit.aes = FALSE,
             size = 2, angle = 0) +
-  scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B",
-                       midpoint = 0, limits = c(-0.8, 0.8),
+  scale_fill_gradientn(colours = corr_cols, limits = c(-0.8, 0.8),
                        name = "Partial correlation coefficient r") +
   scale_colour_manual(values = c(`TRUE` = "black", `FALSE` = "grey85"),
                       guide = "none") +

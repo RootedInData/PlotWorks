@@ -13,6 +13,7 @@ dat$xn <- as.numeric(dat$environment)             # numeric x throughout
 
 pal_sp <- c(Ginkgo = "#E64B35", Acer = "#59A14F",
             Fraxinus = "#00A0B0", Platanus = "#8674A1")
+pal_sp <- plotworks_discrete_values(pal_sp)
 bg <- data.frame(xmin = c(0.4, 1.4), xmax = c(1.4, 2.4),
                  fill = c("#CFE0EC", "#F3D6D2"))
 

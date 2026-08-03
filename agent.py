@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from google.adk import Agent
 from google.adk.tools.agent_tool import AgentTool
+from google.adk.tools.function_tool import FunctionTool
 
 from .agent_cards import AGENT_CARDS
 from .agents import (
@@ -21,6 +22,13 @@ from .agents import (
 )
 from .llm_factory import build_model
 from .prompts import SUPERVISOR_PROMPT
+from .tools import (
+    execute_generated_python_transform,
+    execute_generated_r_animation,
+    execute_generated_r_plot,
+    save_data_transformations,
+    set_ggplot2_case_palette_default,
+)
 
 # Specialist agents exposed to the supervisor as callable tools.
 data_intake_agent = build_data_intake_agent()
@@ -50,6 +58,14 @@ root_agent = Agent(
         AgentTool(agent=data_intake_agent),
         AgentTool(agent=eda_agent),
         AgentTool(agent=data_transformation_agent),
+        # Confirmation-required actions live on the user-facing root agent.
+        # This lets ADK Web surface and resume the structured confirmation event
+        # instead of burying it inside a nested AgentTool invocation.
+        FunctionTool(save_data_transformations, require_confirmation=True),
+        FunctionTool(execute_generated_python_transform, require_confirmation=True),
+        FunctionTool(set_ggplot2_case_palette_default, require_confirmation=True),
+        FunctionTool(execute_generated_r_plot, require_confirmation=True),
+        FunctionTool(execute_generated_r_animation, require_confirmation=True),
         AgentTool(agent=visualization_planner_agent),
         AgentTool(agent=visualization_agent),
         AgentTool(agent=column_decoder_agent),

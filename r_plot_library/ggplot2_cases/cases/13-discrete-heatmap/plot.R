@@ -23,6 +23,8 @@ cat_cols <- setNames(
   colorRampPalette(c("#67001F","#B2182B","#D6604D","#F4A582","#FDDBC7",
                      "#D1E5F0","#92C5DE","#4393C3","#2166AC","#053061"))(10),
   sim$cat_levels)
+cat_cols <- plotworks_continuous_values(cat_cols, n = length(cat_cols))
+names(cat_cols) <- sim$cat_levels
 
 # main heatmap
 p_hm <- ggplot(vals, aes(drug, strain, fill = cat)) +

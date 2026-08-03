@@ -20,6 +20,8 @@ dat$xpos <- ifelse(dat$condition == "control", 1, 2)
 # facet strip colours by antibiotic class
 class_cols <- c(AMIN="#4FB3A9", CARB="#4C72B0", CEPH="#E7A6C4", MEMB="#E08214",
                 TETR="#7FBF7B", TOPO="#8073AC")
+class_cols <- plotworks_discrete_values(class_cols)
+updown_cols <- plotworks_discrete_values(c(up = "#E08214", down = "#3A66A0"))
 strip_fill <- class_cols[as.character(
   dat$class[match(levels(factor(dat$drug)), dat$drug)])]
 
@@ -37,7 +39,7 @@ p <- ggplot(dat, aes(xpos, mic)) +
             inherit.aes = FALSE, size = 3) +
   facet_wrap2(~drug, nrow = 3, strip = strip_themed(
     background_x = elem_list_rect(fill = strip_fill))) +
-  scale_colour_manual(values = c(up = "#E08214", down = "#3A66A0")) +
+  scale_colour_manual(values = updown_cols) +
   scale_x_continuous(breaks = c(1, 2),
                      labels = function(b) ifelse(b == 1, "control", "recent")) +
   scale_y_log10(labels = function(x) parse(text = paste0("10^", log10(x))),

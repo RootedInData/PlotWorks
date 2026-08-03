@@ -18,6 +18,7 @@ pal_path <- c(
   "PI3K-Akt-mTOR"  = "#C79A6B",
   "Ca2+ signaling" = "#55A868"
 )
+pal_path <- plotworks_discrete_values(pal_path)
 
 # Significance brackets (a few illustrative comparisons vs control), placed by
 # treatment index on the x-axis.

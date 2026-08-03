@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from google.adk import Agent
-from google.adk.tools.function_tool import FunctionTool
-
 from ..llm_factory import build_model
 from ..prompts import (
     ANIMATION_DEVELOPER_PROMPT,
@@ -25,14 +23,12 @@ from ..tools import (
     check_publication_plot_setup,
     create_pretty_charts,
     decode_column_roles,
-    execute_generated_python_transform,
-    execute_generated_r_animation,
-    execute_generated_r_plot,
     infer_bed_chrom_sizes,
     inspect_dataset,
     list_available_datasets,
     list_data_transformation_operations,
     list_ggplot2_cases,
+    list_plot_palettes,
     list_pretty_plot_functions,
     match_ggplot2_cases_to_dataset,
     pretty_barplot,
@@ -53,7 +49,6 @@ from ..tools import (
     render_ggplot2_case_demo,
     review_plot_file,
     run_eda,
-    save_data_transformations,
     save_markdown_report,
     validate_generated_python_transform_code,
     validate_generated_r_animation_code,
@@ -90,16 +85,14 @@ def build_data_transformation_agent() -> Agent:
         name="DataTransformationAgent",
         model=build_model(),
         description=(
-            "Previews and saves plot-preparation transformations without modifying "
-            "source data. Deterministic and generated-code writes require user approval."
+            "Previews deterministic plot-preparation transformations and validates "
+            "generated Python proposals without modifying or saving source data."
         ),
         instruction=DATA_TRANSFORMATION_PROMPT,
         tools=[
             list_data_transformation_operations,
             preview_data_transformations,
             validate_generated_python_transform_code,
-            FunctionTool(save_data_transformations, require_confirmation=True),
-            FunctionTool(execute_generated_python_transform, require_confirmation=True),
         ],
     )
 
@@ -164,12 +157,13 @@ def build_publication_plot_agent() -> Agent:
         name="PublicationPlotAgent",
         model=build_model(),
         description=(
-            "Runs approved predefined ggplot2 recipes, simulated previews, setup checks, "
-            "and current direct real-data adapters through controlled Rscript calls."
+            "Runs approved ggplot2 recipes, palette variants, simulated previews, setup "
+            "checks, and direct real-data adapters through controlled Rscript calls."
         ),
         instruction=PUBLICATION_PLOT_PROMPT,
         tools=[
             list_ggplot2_cases,
+            list_plot_palettes,
             check_publication_plot_setup,
             validate_publication_plot_paths,
             render_ggplot2_case,
@@ -184,14 +178,11 @@ def build_r_plot_developer_agent() -> Agent:
         name="RPlotDeveloperAgent",
         model=build_model(),
         description=(
-            "Experimentally writes plotting-only R code for novel static figures when no "
-            "approved recipe fits. Execution requires validation and user confirmation."
+            "Writes and validates guarded plotting-only R code for novel static figures "
+            "when no approved recipe fits, then returns the proposal to the supervisor."
         ),
         instruction=R_PLOT_DEVELOPER_PROMPT,
-        tools=[
-            validate_generated_r_plot_code,
-            FunctionTool(execute_generated_r_plot, require_confirmation=True),
-        ],
+        tools=[validate_generated_r_plot_code],
     )
 
 
@@ -200,15 +191,14 @@ def build_animation_developer_agent() -> Agent:
         name="AnimationDeveloperAgent",
         model=build_model(),
         description=(
-            "Creates controlled animated scatter plots and experimental custom "
-            "R/gganimate figures saved as GIF or MP4."
+            "Creates controlled animated scatter plots and validates custom R/gganimate "
+            "proposals for root-level confirmed GIF or MP4 execution."
         ),
         instruction=ANIMATION_DEVELOPER_PROMPT,
         tools=[
             check_animation_setup,
             render_animated_scatter,
             validate_generated_r_animation_code,
-            FunctionTool(execute_generated_r_animation, require_confirmation=True),
         ],
     )
 

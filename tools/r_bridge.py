@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ..config import settings
+from ..plot_styles.palettes import validate_palette_choice
 from .data_tools import _json_safe, resolve_data_path
 
 
@@ -49,6 +50,52 @@ def _safe_managed_filename(output_path: str, default_name: str) -> str:
     return f"{stem}.png"
 
 
+def _safe_output_subfolder(output_subfolder: str) -> Path:
+    """Resolve a relative subfolder beneath outputs/plots without traversal."""
+
+    raw = str(output_subfolder).strip().replace("\\", "/")
+    if not raw:
+        return Path()
+    candidate = Path(raw)
+    if candidate.is_absolute() or any(part in {"", ".", ".."} for part in candidate.parts):
+        raise ValueError(
+            "output_subfolder must be a safe relative path beneath outputs/plots."
+        )
+    cleaned_parts = []
+    for part in candidate.parts:
+        cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", part).strip("._")
+        if not cleaned:
+            raise ValueError("output_subfolder contains an invalid path component.")
+        cleaned_parts.append(cleaned)
+    return Path(*cleaned_parts)
+
+
+def _resolve_palette_choice(
+    case: dict[str, Any],
+    palette_provider: str,
+    palette_name: str,
+    palette_reverse: bool,
+) -> dict[str, Any]:
+    """Apply explicit request > case default > original recipe precedence."""
+
+    explicit_provider = str(palette_provider).strip().lower()
+    explicit_name = str(palette_name).strip()
+    if explicit_provider or explicit_name:
+        provider = explicit_provider or "ggrateful"
+        choice = validate_palette_choice(provider, explicit_name)
+        choice["reverse"] = bool(palette_reverse)
+        choice["source"] = "explicit_user_request"
+        return choice
+
+    default = case.get("palette_default", {})
+    provider = str(default.get("provider", "recipe") or "recipe")
+    name = str(default.get("name", "") or "")
+    choice = validate_palette_choice(provider, name)
+    choice["reverse"] = bool(default.get("reverse", False))
+    choice["source"] = "case_palette_default" if provider != "recipe" else "original_recipe_colors"
+    return choice
+
+
 def _valid_nonempty_file(path: Path) -> bool:
     if not path.exists() or not path.is_file() or path.stat().st_size < 100:
         return False
@@ -83,6 +130,7 @@ def check_r_environment(check_packages: bool = False) -> dict[str, Any]:
         "cases_folder": str(cases_dir / "cases"),
         "theme_case_R": str(cases_dir / "R" / "theme_case.R"),
         "adk_data_bridge_R": str(cases_dir / "R" / "adk_data_bridge.R"),
+        "shared_palettes_R": str(settings.r_shared_plot_dir / "palettes.R"),
     }
     missing_paths = [label for label, value in required_paths.items() if not Path(value).exists()]
     if missing_paths:
@@ -106,7 +154,8 @@ def check_r_environment(check_packages: bool = False) -> dict[str, Any]:
         pkgs <- c("ggplot2", "dplyr", "tidyr", "ggrepel", "patchwork",
                   "gghalves", "ggforce", "ggalluvial", "treemapify",
                   "circlize", "igraph", "tidygraph", "graphlayouts",
-                  "ggraph", "viridisLite", "scales", "ggh4x", "ggridges")
+                  "ggraph", "viridisLite", "scales", "ggh4x", "ggridges",
+                  "ggrateful", "remotes")
         rows <- lapply(pkgs, function(pkg) {
           if (requireNamespace(pkg, quietly = TRUE)) {
             c(package = pkg,
@@ -223,8 +272,20 @@ def validate_path_readability_for_r(input_path: str = "", output_dir: str = "") 
     )
 
 
-def run_ggplot2_case(case_id: str, input_path: str = "", output_path: str = "") -> dict[str, Any]:
-    """Run one approved ggplot2 recipe through Rscript with managed paths."""
+def run_ggplot2_case(
+    case_id: str,
+    input_path: str = "",
+    output_path: str = "",
+    palette_provider: str = "",
+    palette_name: str = "",
+    palette_reverse: bool = False,
+    output_subfolder: str = "",
+) -> dict[str, Any]:
+    """Run one approved ggplot2 recipe through Rscript with managed paths.
+
+    Palette precedence is explicit arguments, then the case default stored in the
+    existing ggplot2 manifest, then the original recipe colors.
+    """
 
     setup = check_r_environment(check_packages=False)
     if setup.get("status") != "success":
@@ -251,10 +312,15 @@ def run_ggplot2_case(case_id: str, input_path: str = "", output_path: str = "") 
         figure_files = [Path(name).name for name in case.get("figure_files", [f"{case_id}.png"])]
         default_name = f"{stamp}_{case_id}.png"
         managed_name = _safe_managed_filename(output_path, default_name)
+        managed_subfolder = _safe_output_subfolder(output_subfolder)
+        palette_choice = _resolve_palette_choice(
+            case, palette_provider, palette_name, palette_reverse
+        )
     except Exception as exc:
         return _result("error", message=str(exc))
 
-    settings.plot_output_dir.mkdir(parents=True, exist_ok=True)
+    final_output_dir = settings.plot_output_dir / managed_subfolder
+    final_output_dir.mkdir(parents=True, exist_ok=True)
     run_dir = settings.code_output_dir / "r_case_runs" / f"{stamp}_{case_id}_{uuid.uuid4().hex[:8]}"
     run_dir.mkdir(parents=True, exist_ok=False)
     temporary_single = run_dir / managed_name
@@ -267,6 +333,9 @@ def run_ggplot2_case(case_id: str, input_path: str = "", output_path: str = "") 
     env["ADK_INPUT_PATH"] = resolved_input
     env["ADK_OUTPUT_PATH"] = str(temporary_single.resolve())
     env["ADK_OUTPUT_DIR"] = str(run_dir.resolve())
+    env["PLOTWORKS_PALETTE_PROVIDER"] = str(palette_choice["provider"])
+    env["PLOTWORKS_PALETTE_NAME"] = str(palette_choice["palette_name"])
+    env["PLOTWORKS_PALETTE_REVERSE"] = "true" if palette_choice["reverse"] else "false"
 
     rscript = _rscript_path()
     assert rscript is not None
@@ -319,7 +388,7 @@ def run_ggplot2_case(case_id: str, input_path: str = "", output_path: str = "") 
             final_name = managed_name
         else:
             final_name = f"{requested_stem}_{Path(figure_files[index]).stem}.png"
-        final_path = settings.plot_output_dir / final_name
+        final_path = final_output_dir / final_name
         if final_path.exists():
             final_path.unlink()
         shutil.move(str(temporary), str(final_path))
@@ -332,6 +401,9 @@ def run_ggplot2_case(case_id: str, input_path: str = "", output_path: str = "") 
         case_id=case_id,
         used_simulated_data=not bool(resolved_input),
         input_path=resolved_input,
+        palette=palette_choice,
+        output_subfolder=managed_subfolder.as_posix() if managed_subfolder.parts else "",
+        output_directory=str(final_output_dir.resolve()),
         saved_plots=final_outputs,
         run_directory=str(run_dir.resolve()),
         stdout=proc.stdout.strip(),

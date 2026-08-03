@@ -14,6 +14,7 @@ pal_cat <- c(
   "Nucleic acid degrading" = "#C8B560",
   "Nucleotide modifying"   = "#4FB0A5",
   "Unknown"                = "#BDBDBD")
+pal_cat <- plotworks_discrete_values(pal_cat)
 dat$category <- factor(dat$category, levels = names(pal_cat))
 
 p <- ggplot(dat, aes(area = n, fill = category, subgroup = category,

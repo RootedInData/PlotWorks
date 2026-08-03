@@ -38,10 +38,12 @@ from .publication_plot_tools import (
     check_publication_plot_setup,
     decode_column_roles,
     list_ggplot2_cases,
+    list_plot_palettes,
     match_ggplot2_cases_to_dataset,
     render_all_ggplot2_case_demos,
     render_ggplot2_case,
     render_ggplot2_case_demo,
+    set_ggplot2_case_palette_default,
     validate_publication_plot_paths,
 )
 from .report_tools import save_markdown_report
@@ -66,6 +68,7 @@ __all__ = [
     "list_available_datasets",
     "list_data_transformation_operations",
     "list_ggplot2_cases",
+    "list_plot_palettes",
     "list_pretty_plot_functions",
     "load_dataset_frame",
     "match_ggplot2_cases_to_dataset",
@@ -89,6 +92,7 @@ __all__ = [
     "run_eda",
     "save_data_transformations",
     "save_markdown_report",
+    "set_ggplot2_case_palette_default",
     "validate_generated_python_transform_code",
     "validate_generated_r_animation_code",
     "validate_generated_r_plot_code",

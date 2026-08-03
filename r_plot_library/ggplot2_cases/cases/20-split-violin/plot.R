@@ -10,7 +10,7 @@ source("cases/20-split-violin/simulate.R")
 
 dat <- adk_load_or_simulate("20-split-violin", simulate_immune(seed = 1))
 dat$xn <- as.integer(dat$cell)
-pal <- c("low-risk" = "#9AA6D4", "high-risk" = "#D98AA0")
+pal <- plotworks_discrete_values(c("low-risk" = "#9AA6D4", "high-risk" = "#D98AA0"))
 
 lo <- filter(dat, risk == "low-risk")
 hi <- filter(dat, risk == "high-risk")

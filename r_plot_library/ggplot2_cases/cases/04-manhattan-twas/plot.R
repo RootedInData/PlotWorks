@@ -32,16 +32,20 @@ pd <- twas[keep, ]
 
 thr_bonf <- -log10(0.05 / nrow(twas))
 labs <- pd |> filter(!is.na(gene), neglogp > 8)
+band_cols <- plotworks_discrete_values(c("#D6604D", "#4A6FA5"))
+threshold_cols <- plotworks_discrete_values(
+  c(bonferroni = "#2C6FB2", suggestive = "#C0392B")
+)
 
 p <- ggplot(pd, aes(bp_cum, neglogp)) +
   geom_point(aes(colour = band), size = 0.5, show.legend = FALSE) +
-  geom_hline(yintercept = thr_bonf, colour = "#2C6FB2", linewidth = 0.4) +
-  geom_hline(yintercept = -log10(1e-5), colour = "#C0392B", linewidth = 0.4,
+  geom_hline(yintercept = thr_bonf, colour = threshold_cols[["bonferroni"]], linewidth = 0.4) +
+  geom_hline(yintercept = -log10(1e-5), colour = threshold_cols[["suggestive"]], linewidth = 0.4,
              linetype = "dashed") +
   ggrepel::geom_text_repel(data = labs, aes(label = gene), size = 1.9,
             max.overlaps = Inf, seed = 1, segment.size = 0.15,
             min.segment.length = 0) +
-  scale_colour_manual(values = c("#D6604D", "#4A6FA5")) +
+  scale_colour_manual(values = band_cols) +
   scale_x_continuous(breaks = axis_chr$centre, labels = axis_chr$CHR,
                      expand = expansion(mult = 0.01)) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.08))) +

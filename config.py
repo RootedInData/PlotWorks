@@ -63,23 +63,14 @@ class Settings:
     ).strip().lower() in {"1", "true", "yes", "y"}
     max_file_mb: int = int(os.getenv("MAX_FILE_MB", "100"))
     max_preview_rows: int = int(os.getenv("MAX_PREVIEW_ROWS", "8"))
-    enable_custom_r_plotting: bool = os.getenv(
-        "ENABLE_CUSTOM_R_PLOTTING", "false"
-    ).strip().lower() in {"1", "true", "yes", "y"}
     max_generated_r_code_chars: int = int(os.getenv("MAX_GENERATED_R_CODE_CHARS", "30000"))
     r_plot_timeout_seconds: int = int(os.getenv("R_PLOT_TIMEOUT_SECONDS", "180"))
-    enable_custom_data_transformations: bool = os.getenv(
-        "ENABLE_CUSTOM_DATA_TRANSFORMATIONS", "false"
-    ).strip().lower() in {"1", "true", "yes", "y"}
     max_generated_transform_code_chars: int = int(
         os.getenv("MAX_GENERATED_TRANSFORM_CODE_CHARS", "30000")
     )
     data_transform_timeout_seconds: int = int(
         os.getenv("DATA_TRANSFORM_TIMEOUT_SECONDS", "120")
     )
-    enable_custom_r_animations: bool = os.getenv(
-        "ENABLE_CUSTOM_R_ANIMATIONS", "false"
-    ).strip().lower() in {"1", "true", "yes", "y"}
     r_animation_timeout_seconds: int = int(
         os.getenv("R_ANIMATION_TIMEOUT_SECONDS", "300")
     )

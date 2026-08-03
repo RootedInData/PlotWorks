@@ -26,6 +26,8 @@ grid <- grid |>
 grp_cols <- setNames(
   c("#F2C14E","#E4884D","#5AA9E6","#3D7C6B","#B5739D","#8C6BB1"),
   sim$row_groups)
+grp_cols <- plotworks_discrete_values(grp_cols)
+corr_cols <- plotworks_diverging_values(c("#B2182B", "white", "#2166AC"), n = 11)
 taxa$group <- factor(taxa$group, levels = sim$row_groups)
 
 # top super-group brackets
@@ -54,8 +56,7 @@ p <- ggplot() +
             y = nrow(taxa) + 3.2, yend = nrow(taxa) + 3.2), linewidth = 0.4) +
   geom_text(data = sup, aes(x = xc, y = nrow(taxa) + 3.8, label = super),
             size = 2.8, fontface = "bold") +
-  scale_fill_gradient2(low = "#B2182B", mid = "white", high = "#2166AC",
-                       midpoint = 0, name = "r") +
+  scale_fill_gradientn(colours = corr_cols, name = "r") +
   scale_y_reverse(expand = expansion(add = c(1, 5))) +
   scale_x_continuous(expand = expansion(add = c(2.5, 0.5))) +
   coord_cartesian(clip = "off") +
