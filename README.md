@@ -2,11 +2,55 @@
 
 **PlotWorks** is a agentic AI workflow using the Google ADK framework for performing exploratory data analysis and creating high-quality plots in Python and R.
 
+## Agent workflow
+
+```markdown
+![PlotWorks agent workflow](plotworks-agent-workflow.png)
+```
+
+## Project structure
+
+```text
+PlotWorks/
+├── agent.py              # Supervisor definition
+├── agents/               # Specialist definitions
+├── tools/                # Data, plotting, review, and reporting tools
+├── plot_styles/          # Python themes, palettes, and export settings
+├── plot_manifests/       # Approved plot recipes and defaults
+├── r_plot_library/       # Shared R styles, recipes, and setup scripts
+├── examples/             # Example transformations and animations
+├── data/                 # Source datasets
+├── outputs/              # Generated data, figures, reports, and code
+├── tests/                # Automated tests
+├── requirements.txt      # Python dependencies
+└── .env.example          # Configuration template
+```
+
+Keep source data in `data/`; PlotWorks keeps its handiwork in `outputs/`.
+
+## Specialist agents
+
+| Agent | Role |
+|---|---|
+| `DataIntakeAgent` | Locates and inspects datasets. |
+| `EDAAgent` | Produces exploratory summaries. |
+| `DataTransformationAgent` | Previews deterministic or generated transformations. |
+| `VisualizationPlannerAgent` | Chooses the most suitable plotting route. |
+| `VisualizationAgent` | Creates deterministic Python plots. |
+| `ColumnDecoderAgent` | Maps real column names to expected plotting roles. |
+| `PublicationPlotAgent` | Renders approved ggplot2 recipes and manages palette proposals. |
+| `RPlotDeveloperAgent` | Proposes custom static R plots. |
+| `AnimationDeveloperAgent` | Produces standard or custom animations. |
+| `PlotReviewAgent` | Checks raster dimensions, validity, and likely blankness. |
+| `CodePlanningAgent` | Drafts non-executed Python or R plans. |
+| `ReportAgent` | Creates Markdown reports. |
+| `MethodResearchAgent` | Researches plotting methods when requested. |
+
+For setup and runtime problems, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
 The supervisor agent chooses the smallest set of specialists needed for each request.
 Built-in tools handle routine work, while coding specialists stand by for
 unforeseen coding requests and for creating novel R figures.
-
-## Interaction model
 
 `PlotWorksSupervisor` is the sole user-facing agent. Specialist agents operate behind
 the supervisor as tools. `PlotWorksSupervisor` receives the user's request, delegates tasks to specialists, 
@@ -29,200 +73,6 @@ PlotWorks can:
 - Validate generated code and save it with run metadata.
 - Run technical checks for missing, invalid, or nearly blank raster plots.
 - Save Markdown analysis reports.
-
-## Important data-protection rule
-
-PlotWorks never transforms a source file in place.
-
-When a plot requires transformation, `PlotWorksSupervisor` invokes a confirmation tool, and the user approves or rejects the action in the ADK Web dialog. Any approved results are written as a new file under:
-
-```text
-outputs/data/transformed/
-```
-
-A metadata file records the source path, source SHA-256 hash, operations, before/after shape, and output path.
-
-### How the confirmation dialog works
-
-All write or custom-code execution tools are registered
-directly on `PlotWorksSupervisor`. Specialist agents preview
-and validate work and return a proposal, but they do not invoke
-writes from inside an `AgentTool`.
-
-The supervisor then calls the corresponding tool, causing ADK Web to display its
-confirmation control. Providing approaval as a normal chat message does
-not replace that control. Confirm or reject the pending action in the UI.
-
-## Data transformation routes
-
-### Deterministic transformations
-
-`DataTransformationAgent` has several preset operations:
-
-```text
-select_columns
-drop_columns
-rename_columns
-filter_rows
-convert_types
-fill_missing
-drop_missing
-drop_duplicates
-replace_values
-derive_column
-sort_values
-aggregate
-pivot_table
-melt
-reset_index
-```
-
-The specialist first calls `preview_data_transformations()` and returns a
-proposal. The supervisor then invokes `save_data_transformations().
-
-### Custom Python transformations
-
-For data preparation that cannot be expressed through the catalog, the
-agent may write:
-
-```python
-def transform_data(data):
-    # pandas/numpy transformation logic
-    return transformed_dataframe
-```
-
-The validator blocks imports, file/network/system access, private attribute
-access, and serialization methods. The specialist returns the validated code to the
-supervisor, which invokes the execution tool. Execution occurs in a separate process. 
-This is an application-level safeguard, not a true sandbox, so generated code should still be reviewed.
-
-## Plotting routes
-
-### 1. R bioinformatics recipes
-
-Predefined bioinformatics recipes are available and can be applied to the appropriate inputs. Note, some recipes require several input files. Every recipe includes simulated data for preview and testing.
-Some accept a single data table directly; others require a
-transformation or an additional adapter for matrices, networks,
-hierarchies, or multiple linked tables.
-
-Use this route for figures such as Manhattan plots, volcano-style plots,
-raincloud plots, Sankey diagrams, treemaps, and the other cataloged cases.
-
-#### Palette providers and defaults
-
-Approved recipes share one palette layer rather than embedding package-specific
-logic in every agent tool. PlotWorks currently supports:
-
-- `recipe`: preserve each case's original colors.
-- `plotworks`: use the built-in palettes shared with deterministic Python plots.
-- `ggrateful`: use the 16 Grateful Dead-inspired palettes supplied by the
-  `ggrateful` R package.
-
-Use `list_plot_palettes()` to inspect available names and metadata. A palette
-explicitly requested by the user takes precedence over the saved case default;
-a saved case default takes precedence over the original recipe colors.
-
-request rendering of a specific case drawn with a palette of your choice such as:
-
-```text
-Render case 06-raincloud from simulated data using the ggrateful
-terrapin_station palette and save it under palette_examples/raincloud/.
-```
-
-To compare several palettes on one selected case without using an agent, run
-`tests/render_case_palette_variants.py`. It can render all 16 `ggrateful`
-palettes or a named subset and writes a JSON/CSV summary beside the images.
-Examples are provided in the testing section below.
-
-To make a preferred palette the default for one approved case, PlotWorks uses
-`set_ggplot2_case_palette_default()`. The choice
-is stored in `plot_manifests/ggplot2_cases.json`. Resetting the provider to `recipe` restores the
-original case colors.
-
-The implementation remains intentionally lean. Python-side provider metadata
-and validation live in `plot_styles/palettes.py`; R-side color retrieval and
-interpolation live in `r_plot_library/shared/palettes.R`; case preferences stay
-in the existing ggplot2 manifest. Adding another palette family later normally
-requires extending those two palette files.
-
-### 2. Python plots
-
-Python plotting functions use PlotWorks palettes, labels, legends, figure
-sizes, and export settings:
-
-```text
-pretty_histogram
-pretty_barplot
-pretty_scatter
-pretty_lineplot
-pretty_boxplot
-pretty_violin
-pretty_heatmap
-pretty_faceted_plot
-pretty_manhattan
-pretty_genomic_track
-create_pretty_charts
-```
-
-These functions are deterministic and preferred for routine plotting.
-`create_basic_charts()` remains as a compatibility wrapper.
-
-### 3. Custom R plotting
-
-When no ggplot2 recipe fits and R offers a meaningful advantage,
-`RPlotDeveloperAgent` can write a new ggplot2 function.
-
-This route is available by default and is used only when the user requests
-a novel R figure or the visualization planner determines that R provides a meaningful
-advantage over a recipe or a `pretty_*` Python function.
-
-Generated code must define:
-
-```r
-build_plot <- function(data) {
-  # plotting code
-  return(plot_object)
-}
-```
-
-Newly Generated scripts and metadata are saved under `outputs/code/custom_r_runs/`.
-
-### 4. Animated R plotting
-
-PlotWorks provides support for creating animated plots (GIF or MP4) with two paths:
-
-#### Animated scatter
-
-`render_animated_scatter()` accepts explicit x, y, time/state, color, size, and
-label columns. It is the preferred route for bubble-chart-like motion through
-time or states.
-
-#### Custom gganimate
-
-For more complex animated figures, `AnimationDeveloperAgent` can write:
-
-```r
-build_animation <- function(data) {
-  # ggplot2 + gganimate code
-  return(animation_object)
-}
-```
-
-PlotWorks can create animations including animated scatter,
-line, bar, point, and other ggplot2-compatible transitions when the data and
-requested context support them.
-
-Animations are written to:
-
-```text
-outputs/animations/
-```
-
-Generated scripts and run metadata are written to:
-
-```text
-outputs/code/custom_r_animation_runs/
-```
 
 ## Installation
 
@@ -395,61 +245,194 @@ ALLOW_ABSOLUTE_DATA_PATHS=true
 Plot filenames cannot include directories. Transformation output names may use
 safe relative subfolders under `outputs/data/transformed/`.
 
+## Data-protection
+
+PlotWorks never transforms a source file in place.
+
+When a plot requires transformation, `PlotWorksSupervisor` invokes a confirmation tool, and the user approves or rejects the action in the ADK Web dialog. Any approved results are written as a new file under:
+
+```text
+outputs/data/transformed/
+```
+
+A metadata file records the source path, source SHA-256 hash, operations, before/after shape, and output path.
+
+### How the confirmation dialog works
+
+All write or custom-code execution tools are registered
+directly on `PlotWorksSupervisor`. Specialist agents preview
+and validate work and return a proposal, but they do not invoke
+writes from inside an `AgentTool`.
+
+The supervisor then calls the corresponding tool, causing ADK Web to display its
+confirmation control. Providing approaval as a normal chat message does
+not replace that control. Confirm or reject the pending action in the UI.
+
+## Data transformation routes
+
+### Built-in transformations
+
+`DataTransformationAgent` has several preset operations:
+
+```text
+select_columns
+drop_columns
+rename_columns
+filter_rows
+convert_types
+fill_missing
+drop_missing
+drop_duplicates
+replace_values
+derive_column
+sort_values
+aggregate
+pivot_table
+melt
+reset_index
+```
+
+The specialist first calls `preview_data_transformations()` and returns a
+proposal. The supervisor then invokes `save_data_transformations().
+
+### Custom Python transformations
+
+For data preparation that cannot be expressed through the catalog, the
+agent may write:
+
+```python
+def transform_data(data):
+    # pandas/numpy transformation logic
+    return transformed_dataframe
+```
+
+The validator blocks imports, file/network/system access, private attribute
+access, and serialization methods. The specialist returns the validated code to the
+supervisor, which invokes the execution tool. Execution occurs in a separate process. 
+This is an application-level safeguard, not a true sandbox, so generated code should still be reviewed.
+
+## Plotting routes
+
+### 1. R bioinformatics recipes
+
+Predefined bioinformatics recipes are available and can be applied to the appropriate inputs. Note, some recipes require several input files. Every recipe includes simulated data for preview and testing.
+Some accept a single data table directly; others require a
+transformation or an additional adapter for matrices, networks,
+hierarchies, or multiple linked tables.
+
+Use this route for figures such as Manhattan plots, volcano-style plots,
+raincloud plots, Sankey diagrams, treemaps, and the other cataloged cases.
+
+#### Palette providers and defaults
+
+Several palettes are currently supported for plotting:
+
+- `recipe`: preserve each case's original colors.
+- `plotworks`: use the built-in palettes shared with Python plots.
+- `ggrateful`: choose from the 16 Grateful Dead-inspired palettes supplied by the
+  `ggrateful` R package.
+
+Use `list_plot_palettes()` to inspect available names and metadata. A palette
+explicitly requested by the user takes precedence over the defaults. Saved defaults
+takes precedence over the recipe color schemes.
+
+To request rendering of a specific case drawn with a palette of your choice:
+
+```text
+Render case 06-raincloud from simulated data using the ggrateful
+terrapin_station palette and save it under palette_examples/raincloud/.
+```
+
+To compare several palettes on one selected case without using an agent, run
+`tests/render_case_palette_variants.py`. It can render all 16 `ggrateful`
+palettes or a named subset and writes a JSON/CSV summary beside the images.
+Examples are provided in the testing section below.
+
+To make a preferred palette the default for any particular case, PlotWorks uses
+`set_ggplot2_case_palette_default()`. The choice
+is stored in `plot_manifests/ggplot2_cases.json`. Resetting the provider to `recipe` restores the
+original case colors.
+
+### 2. Python plots
+
+Python plotting functions
+
+```text
+pretty_histogram
+pretty_barplot
+pretty_scatter
+pretty_lineplot
+pretty_boxplot
+pretty_violin
+pretty_heatmap
+pretty_faceted_plot
+pretty_manhattan
+pretty_genomic_track
+create_pretty_charts
+```
+
+These functions are preferred by the program for typical plotting cases.
+
+### 3. Custom R plotting
+
+When no ggplot2 recipe fits and R offers a meaningful advantage,
+`RPlotDeveloperAgent` can write a new ggplot2 function.
+
+This route is available by default and is used only when the user requests
+a novel R figure or the visualization planner determines that R provides a meaningful
+advantage over a recipe or a `pretty_*` Python function.
+
+Generated code must define:
+
+```r
+build_plot <- function(data) {
+  # plotting code
+  return(plot_object)
+}
+```
+
+Newly Generated scripts and metadata are saved under `outputs/code/custom_r_runs/`.
+
+### 4. Animated R plotting
+
+PlotWorks provides support for creating animated plots (GIF or MP4) with two paths:
+
+#### Animated scatter
+
+`render_animated_scatter()` accepts explicit x, y, time/state, color, size, and
+label columns. It is the preferred route for bubble-chart-like motion through
+time or states.
+
+#### Custom gganimate
+
+For more complex animated figures, `AnimationDeveloperAgent` can write:
+
+```r
+build_animation <- function(data) {
+  # ggplot2 + gganimate code
+  return(animation_object)
+}
+```
+
+PlotWorks can create animations including animated scatter,
+line, bar, point, and other ggplot2-compatible transitions when the data and
+requested context support them.
+
+Animations are written to:
+
+```text
+outputs/animations/
+```
+
+Generated scripts and run metadata are written to:
+
+```text
+outputs/code/custom_r_animation_runs/
+```
+
 ### BED files
 
 PlotWorks recognizes BED files through BED12. It treats the first three columns
 as `chrom`, `chromStart`, and `chromEnd`, and can summarize interval counts,
 lengths, scores, strands, and inferred chromosome sizes.
 
-## Agent workflow infographic
-
-Add the PlotWorks agent-workflow infographic here when it is available:
-
-```markdown
-![PlotWorks agent workflow](docs/images/plotworks-agent-workflow.png)
-```
-
-The graphic should show the supervisor receiving the request, delegating work
-to specialists, pausing for user confirmation before protected actions, and
-returning the finished data, plot, animation, or report. That is the useful
-peek behind the curtain; the reader does not need the construction diary.
-
-## Project structure
-
-```text
-PlotWorks/
-├── agent.py              # Supervisor definition
-├── agents/               # Specialist definitions
-├── tools/                # Data, plotting, review, and reporting tools
-├── plot_styles/          # Python themes, palettes, and export settings
-├── plot_manifests/       # Approved plot recipes and defaults
-├── r_plot_library/       # Shared R styles, recipes, and setup scripts
-├── examples/             # Example transformations and animations
-├── data/                 # Source datasets
-├── outputs/              # Generated data, figures, reports, and code
-├── tests/                # Automated tests
-├── requirements.txt      # Python dependencies
-└── .env.example          # Configuration template
-```
-
-Keep source data in `data/`; PlotWorks keeps its handiwork in `outputs/`.
-
-## Specialist agents
-
-| Agent | Role |
-|---|---|
-| `DataIntakeAgent` | Locates and inspects datasets. |
-| `EDAAgent` | Produces exploratory summaries. |
-| `DataTransformationAgent` | Previews deterministic or generated transformations. |
-| `VisualizationPlannerAgent` | Chooses the most suitable plotting route. |
-| `VisualizationAgent` | Creates deterministic Python plots. |
-| `ColumnDecoderAgent` | Maps real column names to expected plotting roles. |
-| `PublicationPlotAgent` | Renders approved ggplot2 recipes and manages palette proposals. |
-| `RPlotDeveloperAgent` | Proposes custom static R plots. |
-| `AnimationDeveloperAgent` | Produces standard or custom animations. |
-| `PlotReviewAgent` | Checks raster dimensions, validity, and likely blankness. |
-| `CodePlanningAgent` | Drafts non-executed Python or R plans. |
-| `ReportAgent` | Creates Markdown reports. |
-| `MethodResearchAgent` | Researches plotting methods when requested. |
-
-For setup and runtime problems, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
