@@ -12,7 +12,7 @@ data/*
 CHANGELOG.md
 
 # Test scripts should remain local
-tests/**
+tests/*
 
 # Generated PlotWorks artifacts should remain local.
 outputs/**
