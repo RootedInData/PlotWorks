@@ -4,9 +4,9 @@
 
 ## Agent workflow
 
-```markdown
+
 ![PlotWorks agent workflow](plotworks-agent-workflow.png)
-```
+
 
 ## Project structure
 
@@ -476,8 +476,11 @@ lengths, scores, strands, and inferred chromosome sizes.
 
 Custom BED-like tables can instead be loaded as ordinary tables using explicit
 `loading_options`, including `format="table"`, `header`, `names`, `sep`, and
-`dtype`. This preserves supplied headers and study-specific annotation columns
-without assigning standard BED meanings to them. Genomic column roles and
-coordinate conventions must be supplied explicitly when required; automatic
-genomic schema inference remains future work.
+`dtype`. This preserves headers and columns
+without assigning standardized BED meanings to them. Column names and
+coordinate conventions must be supplied explicitly when needed.
+
+## Future work on Plotworks
+
+![PlotWorks Development Roadmap](PlotWorks_road-trip_roadmap.png)
 
