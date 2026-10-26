@@ -38,10 +38,18 @@ class Settings:
     # working directory. This prevents many WSL/Windows path surprises.
     data_dir: Path = _env_path("DATA_DIR", PACKAGE_DIR / "data")
     output_dir: Path = _env_path("OUTPUT_DIR", PACKAGE_DIR / "outputs")
-    plot_output_dir: Path = _env_path("PLOT_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "plots")
-    report_output_dir: Path = _env_path("REPORT_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "reports")
-    code_output_dir: Path = _env_path("CODE_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "code")
-    data_output_dir: Path = _env_path("DATA_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "data")
+    plot_output_dir: Path = _env_path(
+        "PLOT_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "plots"
+    )
+    report_output_dir: Path = _env_path(
+        "REPORT_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "reports"
+    )
+    code_output_dir: Path = _env_path(
+        "CODE_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "code"
+    )
+    data_output_dir: Path = _env_path(
+        "DATA_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "data"
+    )
     transformed_data_output_dir: Path = _env_path(
         "TRANSFORMED_DATA_OUTPUT_DIR", PACKAGE_DIR / "outputs" / "data" / "transformed"
     )
@@ -63,7 +71,9 @@ class Settings:
     ).strip().lower() in {"1", "true", "yes", "y"}
     max_file_mb: int = int(os.getenv("MAX_FILE_MB", "100"))
     max_preview_rows: int = int(os.getenv("MAX_PREVIEW_ROWS", "8"))
-    max_generated_r_code_chars: int = int(os.getenv("MAX_GENERATED_R_CODE_CHARS", "30000"))
+    max_generated_r_code_chars: int = int(
+        os.getenv("MAX_GENERATED_R_CODE_CHARS", "30000")
+    )
     r_plot_timeout_seconds: int = int(os.getenv("R_PLOT_TIMEOUT_SECONDS", "180"))
     max_generated_transform_code_chars: int = int(
         os.getenv("MAX_GENERATED_TRANSFORM_CODE_CHARS", "30000")
@@ -74,7 +84,17 @@ class Settings:
     r_animation_timeout_seconds: int = int(
         os.getenv("R_ANIMATION_TIMEOUT_SECONDS", "300")
     )
-    enable_web_search: bool = os.getenv("ENABLE_WEB_SEARCH", "false").strip().lower() in {
+    max_bundle_datasets: int = int(os.getenv("MAX_BUNDLE_DATASETS", "50"))
+    max_bundle_memory_mb: int = int(os.getenv("MAX_BUNDLE_MEMORY_MB", "1024"))
+    max_transform_rows: int = int(os.getenv("MAX_TRANSFORM_ROWS", "2000000"))
+    max_transform_memory_mb: int = int(os.getenv("MAX_TRANSFORM_MEMORY_MB", "1024"))
+    generated_transform_memory_mb: int = int(
+        os.getenv("GENERATED_TRANSFORM_MEMORY_MB", "2048")
+    )
+    max_transform_output_mb: int = int(os.getenv("MAX_TRANSFORM_OUTPUT_MB", "256"))
+    enable_web_search: bool = os.getenv(
+        "ENABLE_WEB_SEARCH", "false"
+    ).strip().lower() in {
         "1",
         "true",
         "yes",
@@ -83,6 +103,19 @@ class Settings:
 
 
 settings = Settings()
+for _limit in (
+    "max_file_mb",
+    "max_preview_rows",
+    "max_bundle_datasets",
+    "max_bundle_memory_mb",
+    "max_transform_rows",
+    "max_transform_memory_mb",
+    "generated_transform_memory_mb",
+    "max_transform_output_mb",
+    "data_transform_timeout_seconds",
+):
+    if getattr(settings, _limit) <= 0:
+        raise ValueError(f"{_limit.upper()} must be positive")
 settings.data_dir.mkdir(parents=True, exist_ok=True)
 settings.output_dir.mkdir(parents=True, exist_ok=True)
 settings.plot_output_dir.mkdir(parents=True, exist_ok=True)

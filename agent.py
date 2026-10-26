@@ -4,7 +4,6 @@ from google.adk import Agent
 from google.adk.tools.agent_tool import AgentTool
 from google.adk.tools.function_tool import FunctionTool
 
-from .agent_cards import AGENT_CARDS
 from .agents import (
     build_animation_developer_agent,
     build_code_planning_agent,
@@ -15,7 +14,9 @@ from .agents import (
     build_method_research_agent,
     build_plot_review_agent,
     build_publication_plot_agent,
+    build_python_transform_developer_agent,
     build_r_plot_developer_agent,
+    build_reasoning_agent,
     build_report_agent,
     build_visualization_agent,
     build_visualization_planner_agent,
@@ -26,11 +27,14 @@ from .tools import (
     execute_generated_python_transform,
     execute_generated_r_animation,
     execute_generated_r_plot,
+    save_bundle_transformation,
     save_data_transformations,
     set_ggplot2_case_palette_default,
 )
 
 # Specialist agents exposed to the supervisor as callable tools.
+python_transform_developer_agent = build_python_transform_developer_agent()
+reasoning_agent = build_reasoning_agent()
 data_intake_agent = build_data_intake_agent()
 eda_agent = build_eda_agent()
 data_transformation_agent = build_data_transformation_agent()
@@ -47,20 +51,25 @@ method_research_agent = build_method_research_agent()
 
 root_agent = Agent(
     name="PlotWorksSupervisor",
-    model=build_model(),
+    model=build_model(
+        task="supervision", profile="standard", agent_name="PlotWorksSupervisor"
+    ),
     description=(
         "Supervisor for PlotWorks with deterministic EDA, approved data transformation, "
         "polished Python plotting, approved R recipes, guarded custom R plotting, "
         "and animated visualization."
     ),
-    instruction=SUPERVISOR_PROMPT + "\n\n" + AGENT_CARDS,
+    instruction=SUPERVISOR_PROMPT,
     tools=[
+        AgentTool(agent=reasoning_agent),
+        AgentTool(agent=python_transform_developer_agent),
         AgentTool(agent=data_intake_agent),
         AgentTool(agent=eda_agent),
         AgentTool(agent=data_transformation_agent),
         # Confirmation-required actions live on the user-facing root agent.
         # This lets ADK Web surface and resume the structured confirmation event
         # instead of burying it inside a nested AgentTool invocation.
+        FunctionTool(save_bundle_transformation, require_confirmation=True),
         FunctionTool(save_data_transformations, require_confirmation=True),
         FunctionTool(execute_generated_python_transform, require_confirmation=True),
         FunctionTool(set_ggplot2_case_palette_default, require_confirmation=True),

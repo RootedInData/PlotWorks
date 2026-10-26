@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
-import shutil
 import unittest
 from pathlib import Path
 
 import pandas as pd
-
-from PlotWorks.config import settings
+from PlotWorks.tests.bundle_test_support import BundleTestCase
 from PlotWorks.tools.data_transformation_tools import (
     execute_generated_python_transform,
     preview_data_transformations,
@@ -17,10 +15,10 @@ from PlotWorks.tools.data_transformation_tools import (
 )
 
 
-class DataTransformationTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.input_path = settings.data_dir / "_test_transform_input.csv"
+class DataTransformationTests(BundleTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.input_path = self.settings.data_dir / "_test_transform_input.csv"
         pd.DataFrame(
             {
                 "Area": ["A", "A", "B", "B"],
@@ -28,8 +26,8 @@ class DataTransformationTests(unittest.TestCase):
                 "Element": ["Area harvested", "Yield", "Area harvested", "Yield"],
                 "Value": [10, 100, 11, 105],
             }
-        ).to_csv(cls.input_path, index=False)
-        cls.operations = json.dumps(
+        ).to_csv(self.input_path, index=False)
+        self.operations = json.dumps(
             [
                 {
                     "operation": "pivot_table",
@@ -48,12 +46,6 @@ class DataTransformationTests(unittest.TestCase):
             ]
         )
 
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls.input_path.unlink(missing_ok=True)
-        shutil.rmtree(settings.transformed_data_output_dir / "tests", ignore_errors=True)
-        shutil.rmtree(settings.code_output_dir / "data_transform_runs", ignore_errors=True)
-
     def _hash(self) -> str:
         return hashlib.sha256(self.input_path.read_bytes()).hexdigest()
 
@@ -63,7 +55,9 @@ class DataTransformationTests(unittest.TestCase):
         self.assertEqual(result["status"], "success")
         self.assertTrue(result["source_unchanged"])
         self.assertEqual(before, self._hash())
-        self.assertEqual(result["transformed_columns"], ["Area", "Year", "area_harvested", "yield"])
+        self.assertEqual(
+            result["transformed_columns"], ["Area", "Year", "area_harvested", "yield"]
+        )
 
     def test_save_writes_new_file_and_preserves_source(self) -> None:
         before = self._hash()

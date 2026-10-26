@@ -3,17 +3,12 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
-import os
 import re
-import shutil
-import subprocess
-import sys
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from ..config import settings
@@ -98,9 +93,7 @@ _FORBIDDEN_PYTHON_MODULES = {
 }
 _FORBIDDEN_ATTRIBUTE_NAMES = {
     "dump",
-    "dumps",
     "load",
-    "loads",
     "read_csv",
     "read_excel",
     "read_feather",
@@ -154,7 +147,7 @@ def _safe_relative_output_path(output_name: str, default_stem: str) -> Path:
     raw = str(output_name).strip().strip('"').strip("'")
     if not raw:
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        raw = f"{stamp}_{default_stem}_transformed.csv"
+        raw = f"{stamp}_{default_stem}_{uuid.uuid4().hex[:8]}_transformed.csv"
 
     candidate = Path(raw)
     if candidate.is_absolute():
@@ -164,9 +157,7 @@ def _safe_relative_output_path(output_name: str, default_stem: str) -> Path:
 
     suffix = candidate.suffix.lower() or ".csv"
     if suffix not in _ALLOWED_OUTPUT_SUFFIXES:
-        raise ValueError(
-            "Transformed data output must be CSV, TSV, JSON, or XLSX"
-        )
+        raise ValueError("Transformed data output must be CSV, TSV, JSON, or XLSX")
     if not candidate.suffix:
         candidate = candidate.with_suffix(suffix)
 
@@ -214,7 +205,9 @@ def _evaluate_derive_expression(df: pd.DataFrame, expression: str) -> pd.Series:
         if isinstance(node, ast.Name) and node.id not in df.columns:
             raise ValueError(f"Derive expression references missing column: {node.id}")
     environment = {str(column): df[column] for column in df.columns}
-    return eval(compile(tree, "<derive_expression>", "eval"), {"__builtins__": {}}, environment)
+    return eval(
+        compile(tree, "<derive_expression>", "eval"), {"__builtins__": {}}, environment
+    )
 
 
 def _filter_mask(series: pd.Series, operator: str, value: Any) -> pd.Series:
@@ -307,7 +300,9 @@ def _apply_operations(
                 if target_name in {"numeric", "float"}:
                     df[column] = pd.to_numeric(df[column], errors="coerce")
                 elif target_name in {"integer", "int"}:
-                    df[column] = pd.to_numeric(df[column], errors="coerce").astype("Int64")
+                    df[column] = pd.to_numeric(df[column], errors="coerce").astype(
+                        "Int64"
+                    )
                 elif target_name in {"string", "text"}:
                     df[column] = df[column].astype("string")
                 elif target_name == "category":
@@ -370,10 +365,18 @@ def _apply_operations(
         elif name == "aggregate":
             group_by = [str(value) for value in operation.get("group_by", [])]
             aggregations = operation.get("aggregations", {})
-            _existing_columns(df, group_by + [str(column) for column in aggregations], name)
+            _existing_columns(
+                df, group_by + [str(column) for column in aggregations], name
+            )
             for functions in aggregations.values():
-                function_list = functions if isinstance(functions, list) else [functions]
-                invalid = [str(fn) for fn in function_list if str(fn) not in _ALLOWED_AGGREGATIONS]
+                function_list = (
+                    functions if isinstance(functions, list) else [functions]
+                )
+                invalid = [
+                    str(fn)
+                    for fn in function_list
+                    if str(fn) not in _ALLOWED_AGGREGATIONS
+                ]
                 if invalid:
                     raise ValueError(f"Unsupported aggregation functions: {invalid}")
             if group_by:
@@ -386,7 +389,11 @@ def _apply_operations(
             index_columns = [str(value) for value in operation.get("index", [])]
             column_columns = [str(value) for value in operation.get("columns", [])]
             values = operation.get("values", [])
-            value_columns = [str(values)] if isinstance(values, str) else [str(value) for value in values]
+            value_columns = (
+                [str(values)]
+                if isinstance(values, str)
+                else [str(value) for value in values]
+            )
             _existing_columns(df, index_columns + column_columns + value_columns, name)
             aggfunc = str(operation.get("aggfunc", "first"))
             if aggfunc not in _ALLOWED_AGGREGATIONS:
@@ -454,6 +461,28 @@ def list_data_transformation_operations() -> dict[str, Any]:
             "melt",
             "reset_index",
         ],
+        bundle_operations=[
+            "join",
+            "merge",
+            "concat_rows",
+            "concat_columns",
+            "union_all",
+            "union_distinct",
+            "append_metadata",
+            "coalesce_columns",
+            "interval_join",
+        ],
+        bundle_preview_tool="preview_bundle_transformations",
+        bundle_example={
+            "operation": "join",
+            "left": "traits",
+            "right": "metadata",
+            "on": ["sample_id"],
+            "how": "left",
+            "validate": "many_to_one",
+            "null_keys": "never_match",
+            "output": "plot_ready",
+        },
         example_operations_json=json.dumps(
             [
                 {
@@ -508,10 +537,18 @@ def preview_data_transformations(
             source_file=str(source_path),
             source_sha256=source_hash,
             source_unchanged=True,
-            original_shape={"rows": int(source_frame.shape[0]), "columns": int(source_frame.shape[1])},
-            transformed_shape={"rows": int(transformed.shape[0]), "columns": int(transformed.shape[1])},
+            original_shape={
+                "rows": int(source_frame.shape[0]),
+                "columns": int(source_frame.shape[1]),
+            },
+            transformed_shape={
+                "rows": int(transformed.shape[0]),
+                "columns": int(transformed.shape[1]),
+            },
             transformed_columns=[str(column) for column in transformed.columns],
-            preview=transformed.head(max(1, min(int(preview_rows), 50))).to_dict(orient="records"),
+            preview=transformed.head(max(1, min(int(preview_rows), 50))).to_dict(
+                orient="records"
+            ),
             audit=audit,
             operations=operations,
             next_step=(
@@ -524,6 +561,10 @@ def preview_data_transformations(
 
 
 def _write_frame(frame: pd.DataFrame, destination: Path) -> None:
+    if destination.exists():
+        raise FileExistsError(
+            f"Refusing to overwrite existing data: {destination.name}"
+        )
     destination.parent.mkdir(parents=True, exist_ok=True)
     suffix = destination.suffix.lower()
     if suffix == ".csv":
@@ -539,321 +580,229 @@ def _write_frame(frame: pd.DataFrame, destination: Path) -> None:
 
 
 def save_data_transformations(
-    file_path: str,
-    operations_json: str,
-    output_name: str = "",
-    sheet_name: str = "",
+    file_path: str, operations_json: str, output_name: str = "", sheet_name: str = ""
 ) -> dict[str, Any]:
-    """Save an approved deterministic transformation as a new managed dataset.
+    """Backward-compatible confirmed single-file save through the bundle publisher.
 
-    This function is registered with ADK action confirmation. It never writes to the
-    source path and verifies the source file hash before and after execution.
+    New agent workflows use the explicit preview-bound bundle interface. This
+    legacy Python API retains its original signature and computes its own proposal.
     """
+    from .bundle_transformation_tools import (
+        preview_bundle_transformations,
+        save_bundle_transformation,
+    )
 
-    try:
-        source_path = resolve_data_path(file_path)
-        source_hash_before = _sha256(source_path)
-        source_frame = load_dataset_frame(file_path, sheet_name)
-        operations = _parse_operations(operations_json)
-        transformed, audit = _apply_operations(source_frame, operations)
-        destination = _safe_relative_output_path(output_name, source_path.stem)
-        if destination == source_path.resolve():
-            raise ValueError("Transformed output cannot overwrite the source dataset")
-        _write_frame(transformed, destination)
-        source_hash_after = _sha256(source_path)
-        if source_hash_before != source_hash_after:
-            destination.unlink(missing_ok=True)
-            raise RuntimeError("Source file hash changed; transformed output was removed")
-
-        metadata_path = destination.with_suffix(destination.suffix + ".metadata.json")
-        metadata = {
-            "created_at": datetime.now().isoformat(timespec="seconds"),
-            "source_file": str(source_path),
-            "source_sha256_before": source_hash_before,
-            "source_sha256_after": source_hash_after,
-            "source_unchanged": True,
-            "output_file": str(destination),
-            "original_shape": [int(source_frame.shape[0]), int(source_frame.shape[1])],
-            "transformed_shape": [int(transformed.shape[0]), int(transformed.shape[1])],
-            "operations": operations,
-            "audit": audit,
-        }
-        metadata_path.write_text(json.dumps(_json_safe(metadata), indent=2), encoding="utf-8")
-        return _result(
-            "success",
-            saved_dataset=str(destination),
-            plotting_input_path=str(destination),
-            metadata_file=str(metadata_path),
-            source_file=str(source_path),
-            source_sha256=source_hash_before,
-            source_unchanged=True,
-            original_shape={"rows": int(source_frame.shape[0]), "columns": int(source_frame.shape[1])},
-            transformed_shape={"rows": int(transformed.shape[0]), "columns": int(transformed.shape[1])},
-            transformed_columns=[str(column) for column in transformed.columns],
-            audit=audit,
+    preview = preview_bundle_transformations(
+        operations_json=operations_json,
+        datasets_json=json.dumps(
+            {"source": {"file_path": file_path, "sheet_name": sheet_name}}
+        ),
+        output_names_json=json.dumps({"result": output_name}) if output_name else "",
+    )
+    if preview.get("status") != "success":
+        return preview
+    result = save_bundle_transformation(json.dumps(preview["proposal"]))
+    if result.get("status") == "success":
+        asset = preview["proposal"]["bundle"]["source_assets"]["source"]
+        result.update(
+            {
+                "source_file": asset["file_path"],
+                "source_sha256": asset["sha256"],
+                "original_shape": {
+                    "rows": asset["rows"],
+                    "columns": len(asset["columns"]),
+                },
+            }
         )
-    except Exception as exc:
-        return _result("error", message=str(exc))
+    return result
 
 
 def validate_generated_python_transform_code(code: str) -> dict[str, Any]:
-    """Statically validate generated Python limited to transform_data(data)."""
+    """Validate a transformation function while allowing ordinary analytical Python.
+
+    Both transform_data(data) and transform_data(datasets) are supported. Helper
+    functions, comprehensions, lambdas and approved analytical imports are allowed.
+    This is application validation; process isolation is documented in the README.
+    """
+    from .generated_transform_runtime import allowed_imports
 
     source = str(code)
     errors: list[str] = []
     warnings: list[str] = []
-
     if not source.strip():
         errors.append("No Python code was supplied.")
     if len(source) > settings.max_generated_transform_code_chars:
         errors.append(
-            "Generated transformation code exceeds "
-            f"MAX_GENERATED_TRANSFORM_CODE_CHARS={settings.max_generated_transform_code_chars}."
+            "Generated transformation code exceeds MAX_GENERATED_TRANSFORM_CODE_CHARS"
         )
-
     try:
         tree = ast.parse(source)
     except SyntaxError as exc:
-        errors.append(f"Python syntax error: {exc}")
-        tree = None
-
-    function_names: list[str] = []
-    if tree is not None:
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                errors.append("Import statements are not allowed; pd and np are supplied by the wrapper.")
-            if isinstance(node, ast.FunctionDef):
-                function_names.append(node.name)
-            if isinstance(node, ast.Name) and node.id in _FORBIDDEN_PYTHON_NAMES | _FORBIDDEN_PYTHON_MODULES:
-                errors.append(f"Forbidden Python name detected: {node.id}")
-            if isinstance(node, ast.Attribute):
-                if node.attr.startswith("_"):
-                    errors.append(f"Private/dunder attribute access is not allowed: {node.attr}")
-                if node.attr in _FORBIDDEN_ATTRIBUTE_NAMES:
-                    errors.append(f"File or serialization method is not allowed: {node.attr}")
-            if isinstance(node, (ast.With, ast.AsyncWith, ast.ClassDef, ast.AsyncFunctionDef, ast.Lambda)):
-                errors.append(f"Unsupported Python construct: {type(node).__name__}")
-
-        top_level_functions = [
-            node for node in tree.body if isinstance(node, ast.FunctionDef)
-        ]
-        matching = [
-            node for node in top_level_functions if node.name == "transform_data"
-        ]
-        if len(matching) != 1 or len(top_level_functions) != 1:
-            errors.append("Code must define exactly one top-level def transform_data(data).")
+        return _result(
+            "error", valid=False, errors=[f"Python syntax error: {exc}"], warnings=[]
+        )
+    imports = allowed_imports()
+    blocked_attributes = (
+        _FORBIDDEN_ATTRIBUTE_NAMES
+        | _FORBIDDEN_PYTHON_NAMES
+        | _FORBIDDEN_PYTHON_MODULES
+        | {
+            "savefig",
+            "imsave",
+            "ctypes",
+            "save",
+            "savez",
+            "savez_compressed",
+            "fromfile",
+            "tofile",
+            "memmap",
+            "ctypeslib",
+            "f2py",
+            "get_handle",
+            "get_data",
+            "DataSource",
+            "ExcelWriter",
+            "HDFStore",
+            "read_xml",
+            "read_spss",
+            "read_gbq",
+            "loadtxt",
+            "genfromtxt",
+            "savetxt",
+            "read",
+            "write",
+            "execfile",
+            "fetch",
+            "download",
+            "request",
+            "getenv",
+            "putenv",
+            "remove",
+            "unlink",
+            "rmdir",
+            "chdir",
+            "mkdir",
+            "makedirs",
+        }
+    )
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            modules = (
+                [a.name for a in node.names]
+                if isinstance(node, ast.Import)
+                else [node.module or ""]
+            )
+            if isinstance(node, ast.ImportFrom) and (
+                node.level or any(a.name == "*" for a in node.names)
+            ):
+                errors.append("Relative and wildcard imports are not allowed")
+            for module in modules:
+                if module.split(".")[0] not in imports or any(
+                    p.startswith("_") for p in module.split(".")
+                ):
+                    errors.append(f"Import is not approved: {module}")
+            if isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    if alias.name in blocked_attributes or alias.name.startswith("_"):
+                        errors.append(
+                            f"Imported operation is not allowed: {alias.name}"
+                        )
+        if isinstance(node, ast.Name) and (
+            node.id in _FORBIDDEN_PYTHON_NAMES | _FORBIDDEN_PYTHON_MODULES
+            or node.id.startswith("__")
+        ):
+            errors.append(f"Forbidden Python name detected: {node.id}")
+        if isinstance(node, ast.Attribute) and (
+            node.attr.startswith("_") or node.attr in blocked_attributes
+        ):
+            errors.append(
+                f"File, system or private operation is not allowed: {node.attr}"
+            )
+        if isinstance(
+            node, (ast.ClassDef, ast.AsyncFunctionDef, ast.Global, ast.Nonlocal)
+        ):
+            errors.append(f"Unsupported Python construct: {type(node).__name__}")
+        if isinstance(node, ast.FunctionDef) and node.decorator_list:
+            errors.append("Function decorators are not supported")
+    matching = [
+        n
+        for n in tree.body
+        if isinstance(n, ast.FunctionDef) and n.name == "transform_data"
+    ]
+    contract = ""
+    if len(matching) != 1:
+        errors.append("Define exactly one top-level transform_data function")
+    else:
+        args = matching[0].args
+        names = [a.arg for a in args.posonlyargs + args.args]
+        if (
+            names not in (["data"], ["datasets"])
+            or args.vararg
+            or args.kwarg
+            or args.kwonlyargs
+            or args.defaults
+        ):
+            errors.append(
+                "transform_data must accept exactly one argument named data or datasets"
+            )
         else:
-            function = matching[0]
-            arg_names = [argument.arg for argument in function.args.args]
-            if arg_names != ["data"]:
-                errors.append("transform_data must accept exactly one positional argument named data.")
-        extra_top_level = [
-            node
-            for node in tree.body
-            if not isinstance(node, (ast.FunctionDef, ast.Expr))
-            or (isinstance(node, ast.Expr) and not isinstance(node.value, ast.Constant))
-        ]
-        if extra_top_level:
-            errors.append("Only the transform_data function and an optional module docstring are allowed at top level.")
-
-    if "return" not in source:
-        warnings.append("No return statement was detected; transform_data must return a DataFrame.")
-
+            contract = names[0]
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom, ast.FunctionDef)):
+            continue
+        if (
+            isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            continue
+        errors.append(
+            "Only imports, function definitions and a module docstring are allowed at top level"
+        )
+    if not any(isinstance(n, ast.Return) for n in ast.walk(tree)):
+        warnings.append("No return statement detected")
     errors = list(dict.fromkeys(errors))
-    warnings = list(dict.fromkeys(warnings))
     return _result(
         "success" if not errors else "error",
         valid=not errors,
         errors=errors,
         warnings=warnings,
-        contract=(
-            "Define def transform_data(data): and return a pandas DataFrame. "
-            "Do not import modules, read or write files, access the network, or invoke system commands."
-        ),
+        input_contract=contract,
+        approved_imports=sorted(imports),
+        contract="Return a DataFrame or a dict of named DataFrames. PlotWorks loads inputs and saves outputs; generated code must not read/write files or access system/network services.",
     )
-
-
-def _generated_transform_wrapper_text(script_name: str) -> str:
-    return f'''from __future__ import annotations
-import json
-import sys
-import pandas as pd
-import numpy as np
-
-SAFE_BUILTINS = {{
-    "abs": abs,
-    "all": all,
-    "any": any,
-    "bool": bool,
-    "dict": dict,
-    "enumerate": enumerate,
-    "float": float,
-    "int": int,
-    "isinstance": isinstance,
-    "len": len,
-    "list": list,
-    "max": max,
-    "min": min,
-    "range": range,
-    "round": round,
-    "set": set,
-    "sorted": sorted,
-    "str": str,
-    "sum": sum,
-    "tuple": tuple,
-    "ValueError": ValueError,
-    "TypeError": TypeError,
-    "zip": zip,
-}}
-
-input_path = sys.argv[1]
-output_path = sys.argv[2]
-script_path = {script_name!r}
-data = pd.read_csv(input_path)
-namespace = {{"pd": pd, "np": np, "__builtins__": SAFE_BUILTINS}}
-with open(script_path, "r", encoding="utf-8") as handle:
-    compiled = compile(handle.read(), script_path, "exec")
-exec(compiled, namespace, namespace)
-result = namespace["transform_data"](data.copy(deep=True))
-if not isinstance(result, pd.DataFrame):
-    raise TypeError("transform_data(data) must return a pandas DataFrame")
-result.to_csv(output_path, index=False)
-print(json.dumps({{"rows": int(result.shape[0]), "columns": int(result.shape[1]), "column_names": [str(c) for c in result.columns]}}))
-'''
 
 
 def execute_generated_python_transform(
-    code: str,
-    file_path: str,
-    output_name: str = "",
-    sheet_name: str = "",
+    code: str, file_path: str, output_name: str = "", sheet_name: str = ""
 ) -> dict[str, Any]:
-    """Execute approved custom transformation code and save a new dataset.
-
-    This function is registered with ADK action confirmation. Static validation and
-    a restricted Python namespace reduce risk but do not provide an OS-level sandbox.
-    """
-
-    validation = validate_generated_python_transform_code(code)
-    if validation.get("status") != "success":
-        return _result(
-            "error",
-            message="Generated Python transformation code failed static validation.",
-            validation=validation,
-        )
-
-    try:
-        source_path = resolve_data_path(file_path)
-        source_hash_before = _sha256(source_path)
-        frame = load_dataset_frame(file_path, sheet_name)
-        if frame.empty:
-            raise ValueError("The selected dataset is empty")
-        destination = _safe_relative_output_path(output_name, source_path.stem)
-    except Exception as exc:
-        return _result("error", message=str(exc))
-
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_id = f"{stamp}_{uuid.uuid4().hex[:8]}"
-    run_dir = settings.code_output_dir / "data_transform_runs" / run_id
-    run_dir.mkdir(parents=True, exist_ok=False)
-    input_csv = run_dir / "input.csv"
-    generated_script = run_dir / "generated_transform.py"
-    wrapper_script = run_dir / "run_transform.py"
-    temp_output = run_dir / "transformed.csv"
-    metadata_path = run_dir / "run_metadata.json"
-
-    frame.to_csv(input_csv, index=False)
-    try:
-        input_csv.chmod(0o444)
-    except OSError:
-        pass
-    generated_script.write_text(code, encoding="utf-8")
-    wrapper_script.write_text(
-        _generated_transform_wrapper_text(generated_script.name), encoding="utf-8"
+    """Backward-compatible confirmed single-input execution using the bundle runtime."""
+    from .bundle_transformation_tools import (
+        preview_generated_bundle_transform,
+        save_bundle_transformation,
     )
 
-    env = os.environ.copy()
-    env.update({"PYTHONNOUSERSITE": "1", "PYTHONHASHSEED": "0"})
-    for key in list(env):
-        if key.endswith("_API_KEY") or key in {"GOOGLE_APPLICATION_CREDENTIALS"}:
-            env.pop(key, None)
-    try:
-        proc = subprocess.run(
-            [sys.executable, "-I", wrapper_script.name, str(input_csv), str(temp_output)],
-            cwd=str(run_dir),
-            env=env,
-            text=True,
-            capture_output=True,
-            timeout=settings.data_transform_timeout_seconds,
-        )
-    except subprocess.TimeoutExpired:
-        return _result(
-            "error",
-            message=(
-                "Custom data transformation exceeded the "
-                f"{settings.data_transform_timeout_seconds}-second timeout."
-            ),
-            generated_script=str(generated_script),
-            run_directory=str(run_dir),
-        )
-
-    metadata = {
-        "run_id": run_id,
-        "source_file": str(source_path),
-        "source_sha256_before": source_hash_before,
-        "requested_output": str(destination),
-        "returncode": proc.returncode,
-        "stdout": proc.stdout.strip(),
-        "stderr": proc.stderr.strip(),
-        "validation": validation,
-    }
-
-    if proc.returncode != 0 or not temp_output.exists():
-        metadata_path.write_text(json.dumps(_json_safe(metadata), indent=2), encoding="utf-8")
-        return _result(
-            "error",
-            message="Custom Python data transformation failed.",
-            stdout=proc.stdout.strip(),
-            stderr=proc.stderr.strip(),
-            generated_script=str(generated_script),
-            run_metadata=str(metadata_path),
-        )
-
-    transformed = pd.read_csv(temp_output)
-    _write_frame(transformed, destination)
-    source_hash_after = _sha256(source_path)
-    if source_hash_before != source_hash_after:
-        destination.unlink(missing_ok=True)
-        raise RuntimeError("Source file hash changed; transformed output was removed")
-
-    metadata.update(
-        {
-            "source_sha256_after": source_hash_after,
-            "source_unchanged": True,
-            "saved_output": str(destination),
-            "transformed_shape": [int(transformed.shape[0]), int(transformed.shape[1])],
-            "transformed_columns": [str(column) for column in transformed.columns],
-        }
-    )
-    metadata_path.write_text(json.dumps(_json_safe(metadata), indent=2), encoding="utf-8")
-    output_metadata = destination.with_suffix(destination.suffix + ".metadata.json")
-    output_metadata.write_text(json.dumps(_json_safe(metadata), indent=2), encoding="utf-8")
-
-    return _result(
-        "success",
-        saved_dataset=str(destination),
-        plotting_input_path=str(destination),
-        output_metadata=str(output_metadata),
-        generated_script=str(generated_script),
-        run_metadata=str(metadata_path),
-        source_file=str(source_path),
-        source_sha256=source_hash_before,
-        source_unchanged=True,
-        original_shape={"rows": int(frame.shape[0]), "columns": int(frame.shape[1])},
-        transformed_shape={"rows": int(transformed.shape[0]), "columns": int(transformed.shape[1])},
-        transformed_columns=[str(column) for column in transformed.columns],
-        warning=(
-            "Custom data transformation code uses static validation and "
-            "an isolated subprocess reduce risk but are not a full OS-level sandbox."
+    preview = preview_generated_bundle_transform(
+        code=code,
+        datasets_json=json.dumps(
+            {"source": {"file_path": file_path, "sheet_name": sheet_name}}
         ),
+        output_names_json=json.dumps({"result": output_name}) if output_name else "",
     )
+    if preview.get("status") != "success":
+        return preview
+    result = save_bundle_transformation(json.dumps(preview["proposal"]))
+    if result.get("status") == "success":
+        result["original_shape"] = {
+            "rows": preview["proposal"]["bundle"]["source_assets"]["source"]["rows"],
+            "columns": len(
+                preview["proposal"]["bundle"]["source_assets"]["source"]["columns"]
+            ),
+        }
+        result["source_file"] = preview["proposal"]["bundle"]["source_assets"][
+            "source"
+        ]["file_path"]
+        result["source_sha256"] = preview["proposal"]["bundle"]["source_assets"][
+            "source"
+        ]["sha256"]
+    return result

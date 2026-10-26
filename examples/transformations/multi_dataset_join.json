@@ -1,0 +1,10 @@
+{
+  "datasets": {
+    "traits": {"file_path": "phenotypes.csv", "loading_options": {"dtype": {"sample_id": "string"}}},
+    "metadata": {"file_path": "metadata.xlsx", "sheet_name": "Samples", "loading_options": {"dtype": {"sample_id": "string"}}}
+  },
+  "operations": [
+    {"operation": "join", "left": "traits", "right": "metadata", "on": ["sample_id"], "how": "left", "validate": "many_to_one", "null_keys": "never_match", "output": "plot_ready"}
+  ],
+  "output_names": {"plot_ready": "trial/plot_ready.csv"}
+}

@@ -1,12 +1,13 @@
-"""PlotWorks package.
+"""PlotWorks utilities can be imported without constructing model clients.
 
-ADK discovers ``root_agent`` from ``agent.py`` when this directory is run as an
-ADK app. The guarded import keeps local utility modules importable in lightweight
-contexts where google-adk has not been installed yet.
+ADK discovers the agent submodule normally. Lazy access also preserves
+``from PlotWorks import agent`` without requiring API keys for local data tools.
 """
 
-try:  # pragma: no cover - exercised by ADK runtime
-    from . import agent  # noqa: F401
-except ModuleNotFoundError as exc:  # allows importing tools before ADK is installed
-    if exc.name != "google.adk":
-        raise
+from importlib import import_module
+
+
+def __getattr__(name: str):
+    if name == "agent":
+        return import_module(".agent", __name__)
+    raise AttributeError(name)

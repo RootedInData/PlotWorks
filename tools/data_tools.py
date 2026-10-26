@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
+import math
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,7 +27,17 @@ BED_COLUMNS = [
     "blockSizes",
     "blockStarts",
 ]
-SUPPORTED_SUFFIXES = {".csv", ".tsv", ".tab", ".xlsx", ".xls", ".json", ".txt", ".data", ".bed"}
+SUPPORTED_SUFFIXES = {
+    ".csv",
+    ".tsv",
+    ".tab",
+    ".xlsx",
+    ".xls",
+    ".json",
+    ".txt",
+    ".data",
+    ".bed",
+}
 
 
 def _json_safe(obj: Any) -> Any:
@@ -37,12 +50,22 @@ def _json_safe(obj: Any) -> Any:
     if isinstance(obj, (np.integer,)):
         return int(obj)
     if isinstance(obj, (np.floating,)):
-        if np.isnan(obj):
+        if not np.isfinite(obj):
             return None
         return float(obj)
     if isinstance(obj, (np.bool_,)):
         return bool(obj)
-    if isinstance(obj, pd.Timestamp):
+    if isinstance(obj, np.datetime64):
+        return None if np.isnat(obj) else pd.Timestamp(obj).isoformat()
+    if isinstance(obj, pd.Timedelta):
+        return str(obj)
+    if obj is pd.NaT:
+        return None
+    if isinstance(obj, float) and not math.isfinite(obj):
+        return None
+    if isinstance(obj, np.ndarray):
+        return _json_safe(obj.tolist())
+    if isinstance(obj, (pd.Timestamp, date, datetime)):
         return obj.isoformat()
     if obj is pd.NA:
         return None
@@ -64,11 +87,17 @@ def resolve_data_path(file_path: str) -> Path:
 
     clean = str(file_path).strip().strip('"').strip("'")
     candidate = Path(clean).expanduser()
-    managed_roots = [settings.data_dir.resolve(), settings.data_output_dir.resolve()]
+    managed_roots = [
+        settings.data_dir.resolve(),
+        settings.data_output_dir.resolve(),
+        settings.transformed_data_output_dir.resolve(),
+    ]
 
     if candidate.is_absolute():
         resolved = candidate.resolve()
-        managed = any(root == resolved or root in resolved.parents for root in managed_roots)
+        managed = any(
+            root == resolved or root in resolved.parents for root in managed_roots
+        )
         if not managed and not settings.allow_absolute_data_paths:
             raise PermissionError(
                 "Absolute paths outside PlotWorks-managed data directories are disabled. "
@@ -77,6 +106,12 @@ def resolve_data_path(file_path: str) -> Path:
             )
         path = resolved
     else:
+        if ".." in candidate.parts:
+            raise PermissionError(
+                "Relative input paths cannot traverse parent directories"
+            )
+        if candidate.parts and candidate.parts[0] == "data":
+            candidate = Path(*candidate.parts[1:])
         candidates = [
             (settings.data_dir / candidate).resolve(),
             (settings.data_output_dir / candidate).resolve(),
@@ -84,6 +119,23 @@ def resolve_data_path(file_path: str) -> Path:
         # Allow a tool-returned package-relative path such as outputs/data/transformed/x.csv.
         if candidate.parts and candidate.parts[0] == "outputs":
             candidates.insert(0, (settings.package_dir / candidate).resolve())
+        if any(
+            item.exists()
+            and not any(item.is_relative_to(root) for root in managed_roots)
+            for item in candidates
+        ):
+            raise PermissionError(
+                "Input symlink resolves outside managed data directories"
+            )
+        candidates = [
+            item
+            for item in candidates
+            if any(item.is_relative_to(root) for root in managed_roots)
+        ]
+        if not candidates:
+            raise PermissionError(
+                "Input path resolves outside managed data directories"
+            )
         path = next((item for item in candidates if item.exists()), candidates[0])
 
     if not path.exists():
@@ -121,7 +173,11 @@ def _bed_data_lines(path: Path) -> list[str]:
             if not stripped:
                 continue
             lower = stripped.lower()
-            if lower.startswith("track") or lower.startswith("browser") or stripped.startswith("#"):
+            if (
+                lower.startswith("track")
+                or lower.startswith("browser")
+                or stripped.startswith("#")
+            ):
                 continue
             lines.append(stripped)
     return lines
@@ -133,14 +189,18 @@ def load_bed_file(file_path: str) -> pd.DataFrame:
     path = resolve_data_path(file_path)
     lines = _bed_data_lines(path)
     if not lines:
-        raise ValueError("BED file contains no data rows after skipping track/browser/comment lines.")
+        raise ValueError(
+            "BED file contains no data rows after skipping track/browser/comment lines."
+        )
 
     split_rows = [line.split("\t") if "\t" in line else line.split() for line in lines]
     field_counts = {len(row) for row in split_rows}
     max_fields = max(field_counts)
     min_fields = min(field_counts)
     if min_fields < 3:
-        raise ValueError("BED files require at least 3 columns: chrom, chromStart, chromEnd.")
+        raise ValueError(
+            "BED files require at least 3 columns: chrom, chromStart, chromEnd."
+        )
 
     # BED optional fields should usually be consistent, but real files sometimes
     # have missing trailing optional fields. Pad those rows instead of failing.
@@ -153,7 +213,14 @@ def load_bed_file(file_path: str) -> pd.DataFrame:
         columns = BED_COLUMNS + [f"extra_{i}" for i in range(13, n_fields + 1)]
 
     df = pd.DataFrame(split_rows, columns=columns)
-    for col in ["chromStart", "chromEnd", "score", "thickStart", "thickEnd", "blockCount"]:
+    for col in [
+        "chromStart",
+        "chromEnd",
+        "score",
+        "thickStart",
+        "thickEnd",
+        "blockCount",
+    ]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -163,27 +230,93 @@ def load_bed_file(file_path: str) -> pd.DataFrame:
     return df
 
 
-def load_dataset_frame(file_path: str, sheet_name: str = "") -> pd.DataFrame:
+def _managed_schema_options(path: Path) -> dict[str, Any]:
+    if not path.is_relative_to(settings.transformed_data_output_dir.resolve()):
+        return {}
+    sidecar = path.with_suffix(path.suffix + ".metadata.json")
+    if not sidecar.is_file():
+        return {}
+    metadata = json.loads(sidecar.read_text(encoding="utf-8"))
+    asset = metadata.get("output_asset", {})
+    if not asset.get("loading_options"):
+        return {}
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    if digest.hexdigest() != asset.get("sha256"):
+        raise ValueError(
+            "Managed dataset changed since saving; verify it before reusing its recorded schema"
+        )
+    return dict(asset["loading_options"])
+
+
+def load_dataset_frame(
+    file_path: str, sheet_name: str = "", loading_options_json: str = ""
+) -> pd.DataFrame:
     """Load a supported dataset file into a pandas DataFrame."""
 
     path = resolve_data_path(file_path)
     suffix = _suffix(path)
 
+    supplied_options = json.loads(loading_options_json) if loading_options_json else {}
+    if not isinstance(supplied_options, dict):
+        raise ValueError("loading_options_json must be a JSON object")
+    options = {**_managed_schema_options(path), **supplied_options}
+    allowed = {
+        "dtype",
+        "header",
+        "names",
+        "sep",
+        "na_values",
+        "keep_default_na",
+        "parse_dates",
+        "skiprows",
+        "usecols",
+        "encoding",
+        "format",
+    }
+    if not isinstance(options, dict) or set(options) - allowed:
+        raise ValueError(
+            "Unsupported loading options; use dtype, header, names, sep, na_values, keep_default_na, parse_dates, skiprows, usecols, encoding, format"
+        )
+    if isinstance(options.get("dtype"), dict) and not all(
+        isinstance(v, str) for v in options["dtype"].values()
+    ):
+        raise ValueError("dtype must use pandas dtype names as strings")
+    selected_format = options.pop("format", "")
+    if selected_format not in {"", "table"}:
+        raise ValueError("loading_options format must be table when specified")
+    table_mode = selected_format == "table"
     if suffix == ".csv":
-        return pd.read_csv(path)
+        return pd.read_csv(path, **options)
     if suffix in {".tsv", ".tab"}:
-        return pd.read_csv(path, sep="\t")
+        options.setdefault("sep", "\t")
+        return pd.read_csv(path, **options)
     if suffix in {".xlsx", ".xls"}:
         selected_sheet = sheet_name if sheet_name else 0
-        return pd.read_excel(path, sheet_name=selected_sheet)
+        options.pop("encoding", None)
+        options.pop("sep", None)
+        return pd.read_excel(path, sheet_name=selected_sheet, **options)
     if suffix == ".json":
+        if "parse_dates" in options:
+            options["convert_dates"] = options.pop("parse_dates")
         try:
-            return pd.read_json(path)
+            return pd.read_json(path, **options)
         except ValueError:
-            return pd.read_json(path, lines=True)
+            return pd.read_json(path, lines=True, **options)
     if suffix in {".txt", ".data"}:
-        return pd.read_csv(path, sep=None, engine="python")
+        options.setdefault("sep", None)
+        return pd.read_csv(path, engine="python", **options)
     if suffix in {".bed", ".bed.gz"}:
+        if table_mode:
+            options.setdefault("sep", "\t")
+            options.setdefault("comment", "#")
+            return pd.read_csv(path, **options)
+        if options:
+            raise ValueError(
+                "Use loading_options format=table for custom BED-like headers or column types"
+            )
         return load_bed_file(file_path)
 
     raise ValueError(
@@ -209,10 +342,20 @@ def _bed_summary(df: pd.DataFrame) -> dict[str, Any]:
         )
         summary.update(
             {
-                "bed_field_count": len([c for c in df.columns if c in BED_COLUMNS or c.startswith("extra_")]),
+                "bed_field_count": len(
+                    [
+                        c
+                        for c in df.columns
+                        if c in BED_COLUMNS or c.startswith("extra_")
+                    ]
+                ),
                 "chromosome_or_scaffold_count": int(df["chrom"].nunique(dropna=True)),
-                "top_chromosomes_or_scaffolds": {str(k): int(v) for k, v in chrom_counts.items()},
-                "inferred_chromosome_sizes_top_50": inferred_sizes_df.head(50).to_dict(orient="records"),
+                "top_chromosomes_or_scaffolds": {
+                    str(k): int(v) for k, v in chrom_counts.items()
+                },
+                "inferred_chromosome_sizes_top_50": inferred_sizes_df.head(50).to_dict(
+                    orient="records"
+                ),
                 "coordinate_system_note": (
                     "BED convention uses zero-based chromStart and half-open chromEnd. "
                     "Interval length is chromEnd - chromStart."
@@ -244,7 +387,9 @@ def _bed_summary(df: pd.DataFrame) -> dict[str, Any]:
     return summary
 
 
-def infer_bed_chrom_sizes(file_path: str, genome_sizes_path: str = "") -> dict[str, Any]:
+def infer_bed_chrom_sizes(
+    file_path: str, genome_sizes_path: str = ""
+) -> dict[str, Any]:
     """Infer or read chromosome sizes for a BED file.
 
     Args:
@@ -260,7 +405,13 @@ def infer_bed_chrom_sizes(file_path: str, genome_sizes_path: str = "") -> dict[s
         bed = load_bed_file(file_path)
         if genome_sizes_path:
             sizes_path = resolve_data_path(genome_sizes_path)
-            sizes = pd.read_csv(sizes_path, sep=None, engine="python", header=None, names=["chrom", "size"])
+            sizes = pd.read_csv(
+                sizes_path,
+                sep=None,
+                engine="python",
+                header=None,
+                names=["chrom", "size"],
+            )
             sizes["size"] = pd.to_numeric(sizes["size"], errors="coerce")
             return _result(
                 "success",
@@ -347,7 +498,9 @@ def inspect_dataset(file_path: str, sheet_name: str = "") -> dict[str, Any]:
                 "missing_count": int(series.isna().sum()),
                 "missing_percent": round(float(series.isna().mean() * 100), 2),
                 "unique_count": int(series.nunique(dropna=True)),
-                "sample_values": non_null.head(settings.max_preview_rows).astype(str).tolist(),
+                "sample_values": non_null.head(settings.max_preview_rows)
+                .astype(str)
+                .tolist(),
             }
         )
 
@@ -375,7 +528,9 @@ def inspect_dataset(file_path: str, sheet_name: str = "") -> dict[str, Any]:
             if rows > 0 and df[col].nunique(dropna=True) / rows > 0.95
         ],
         empty_columns=[str(col) for col in df.columns if df[col].isna().sum() == rows],
-        constant_columns=[str(col) for col in df.columns if df[col].nunique(dropna=True) <= 1],
+        constant_columns=[
+            str(col) for col in df.columns if df[col].nunique(dropna=True) <= 1
+        ],
         **extras,
     )
 
@@ -405,7 +560,9 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
         .reset_index()
         .rename(columns={"index": "column", 0: "missing_count"})
     )
-    missingness["missing_percent"] = (missingness["missing_count"] / max(rows, 1) * 100).round(2)
+    missingness["missing_percent"] = (
+        missingness["missing_count"] / max(rows, 1) * 100
+    ).round(2)
 
     numeric_summary = {}
     if not numeric_df.empty:
@@ -418,7 +575,13 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
 
     categorical_summary = {}
     for col in categorical_df.columns[:30]:
-        counts = categorical_df[col].astype("string").fillna("<MISSING>").value_counts().head(10)
+        counts = (
+            categorical_df[col]
+            .astype("string")
+            .fillna("<MISSING>")
+            .value_counts()
+            .head(10)
+        )
         categorical_summary[str(col)] = {
             "unique_count": int(categorical_df[col].nunique(dropna=True)),
             "top_values": {str(k): int(v) for k, v in counts.items()},
@@ -440,7 +603,9 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
                             "abs_correlation": round(abs(float(value)), 4),
                         }
                     )
-        correlations = sorted(correlations, key=lambda x: x["abs_correlation"], reverse=True)[:15]
+        correlations = sorted(
+            correlations, key=lambda x: x["abs_correlation"], reverse=True
+        )[:15]
 
     outliers = {}
     for col in numeric_df.columns[:50]:
@@ -481,9 +646,13 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
             }
         )
 
-    constant_columns = [str(col) for col in df.columns if df[col].nunique(dropna=True) <= 1]
+    constant_columns = [
+        str(col) for col in df.columns if df[col].nunique(dropna=True) <= 1
+    ]
     if constant_columns:
-        warnings.append({"type": "constant_or_empty_columns", "columns": constant_columns[:30]})
+        warnings.append(
+            {"type": "constant_or_empty_columns", "columns": constant_columns[:30]}
+        )
 
     extras: dict[str, Any] = {}
     if _suffix(path) in {".bed", ".bed.gz"}:
@@ -508,7 +677,9 @@ def run_eda(file_path: str, sheet_name: str = "") -> dict[str, Any]:
     )
 
 
-def create_basic_charts(file_path: str, sheet_name: str = "", output_prefix: str = "eda") -> dict[str, Any]:
+def create_basic_charts(
+    file_path: str, sheet_name: str = "", output_prefix: str = "eda"
+) -> dict[str, Any]:
     """Backward-compatible wrapper around the polished Python chart system.
 
     New code should call ``create_pretty_charts`` or an individual ``pretty_*``

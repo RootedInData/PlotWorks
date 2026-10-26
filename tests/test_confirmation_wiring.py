@@ -4,13 +4,13 @@ import ast
 import unittest
 from pathlib import Path
 
-
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 ROOT_AGENT_PATH = PACKAGE_DIR / "agent.py"
 SPECIALISTS_PATH = PACKAGE_DIR / "agents" / "specialists.py"
 PROMPTS_PATH = PACKAGE_DIR / "prompts.py"
 
 EXPECTED_ROOT_CONFIRMED_TOOLS = {
+    "save_bundle_transformation",
     "save_data_transformations",
     "execute_generated_python_transform",
     "set_ggplot2_case_palette_default",
@@ -31,9 +31,15 @@ def _root_agent_tools(tree: ast.Module) -> list[ast.AST]:
     for node in tree.body:
         if not isinstance(node, ast.Assign):
             continue
-        if not any(isinstance(target, ast.Name) and target.id == "root_agent" for target in node.targets):
+        if not any(
+            isinstance(target, ast.Name) and target.id == "root_agent"
+            for target in node.targets
+        ):
             continue
-        if not isinstance(node.value, ast.Call) or _call_name(node.value.func) != "Agent":
+        if (
+            not isinstance(node.value, ast.Call)
+            or _call_name(node.value.func) != "Agent"
+        ):
             continue
         for keyword in node.value.keywords:
             if keyword.arg == "tools" and isinstance(keyword.value, ast.List):
@@ -47,7 +53,10 @@ class ConfirmationWiringTests(unittest.TestCase):
         confirmed: set[str] = set()
 
         for tool_node in _root_agent_tools(tree):
-            if not isinstance(tool_node, ast.Call) or _call_name(tool_node.func) != "FunctionTool":
+            if (
+                not isinstance(tool_node, ast.Call)
+                or _call_name(tool_node.func) != "FunctionTool"
+            ):
                 continue
             self.assertGreaterEqual(len(tool_node.args), 1)
             function_name = _call_name(tool_node.args[0])
@@ -79,10 +88,12 @@ class ConfirmationWiringTests(unittest.TestCase):
         for tool_name in EXPECTED_ROOT_CONFIRMED_TOOLS:
             self.assertNotIn(tool_name, source)
 
-    def test_prompts_distinguish_structured_confirmation_from_chat_approval(self) -> None:
+    def test_prompts_distinguish_structured_confirmation_from_chat_approval(
+        self,
+    ) -> None:
         source = PROMPTS_PATH.read_text(encoding="utf-8")
         self.assertIn("root-level FunctionTool", source)
-        self.assertIn('Do not treat a free-text message such as', source)
+        self.assertIn("Do not treat a free-text message such as", source)
         self.assertIn('"I approve"', source)
         self.assertIn("do not interpret an empty payload", source)
 

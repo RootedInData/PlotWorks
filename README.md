@@ -21,7 +21,6 @@ PlotWorks/
 ├── examples/             # Example transformations and animations
 ├── data/                 # Source datasets
 ├── outputs/              # Generated data, figures, reports, and code
-├── tests/                # Automated tests
 ├── requirements.txt      # Python dependencies
 └── .env.example          # Configuration template
 ```
@@ -34,17 +33,19 @@ Keep source data in `data/`; PlotWorks keeps its handiwork in `outputs/`.
 |---|---|
 | `DataIntakeAgent` | Locates and inspects datasets. |
 | `EDAAgent` | Produces exploratory summaries. |
-| `DataTransformationAgent` | Previews deterministic or generated transformations. |
+| `DataTransformationAgent` | Describe how data is transformed or prepared |
 | `VisualizationPlannerAgent` | Chooses the most suitable plotting route. |
 | `VisualizationAgent` | Creates deterministic Python plots. |
-| `ColumnDecoderAgent` | Maps real column names to expected plotting roles. |
-| `PublicationPlotAgent` | Renders approved ggplot2 recipes and manages palette proposals. |
-| `RPlotDeveloperAgent` | Proposes custom static R plots. |
+| `ColumnDecoderAgent` | Maps column names to expected plotting roles. |
+| `PublicationPlotAgent` | Renders packaged ggplot2 recipes and manages palette proposals. |
+| `RPlotDeveloperAgent` | Proposes custom R plots. |
 | `AnimationDeveloperAgent` | Produces standard or custom animations. |
-| `PlotReviewAgent` | Checks raster dimensions, validity, and likely blankness. |
-| `CodePlanningAgent` | Drafts non-executed Python or R plans. |
+| `PlotReviewAgent` | Checks raster dimensions, validity, and looks for empty file outputs. |
+| `CodePlanningAgent` | Drafts Python or R coding plans. |
 | `ReportAgent` | Creates Markdown reports. |
 | `MethodResearchAgent` | Researches plotting methods when requested. |
+| `PythonTransformDeveloperAgent` | Custom Python transformations. |
+| `ReasoningAgent` |  Complex planning and debugging. |
 
 For setup and runtime problems, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
@@ -61,6 +62,7 @@ presents previews and proposals, and reports the final results.
 PlotWorks can:
 
 - Detect CSV, TSV, Excel, JSON, text, DATA, BED, and BED.GZ files.
+- Perform joins, concatenation, unions and coalescing.
 - Run pandas-based exploratory data analysis using deterministic functions and code generated on the fly.
 - Summarize BED intervals, scores, strands, and inferred chromosome sizes.
 - Map inconsistent column names to likely semantic roles.
@@ -73,6 +75,7 @@ PlotWorks can:
 - Validate generated code and save it with run metadata.
 - Run technical checks for missing, invalid, or nearly blank raster plots.
 - Save Markdown analysis reports.
+- Supports configuring models for different tasks. Allowing for lower costs on less complex tasks.
 
 ## Installation
 
@@ -131,8 +134,8 @@ install, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Model configuration
 
-Open `.env` and configure one provider. Keep the other provider entries absent
-or commented out.
+Open `.env` and configure one or more providers. Keep the other provider entries absent
+or commented out, if using a single provider.
 
 Gemini:
 
@@ -160,6 +163,22 @@ OPENAI_API_KEY=PASTE_YOUR_OPENAI_API_KEY_HERE
 
 For Claude and OpenAI, `litellm` is the ADK adapter; the prefix in `MODEL`
 selects the model provider.
+
+Tiered multi-model approach:
+
+```env
+PROVIDER=litellm
+MODEL=anthropic/claude-opus-5-5 # 'MODELS overrides this setting, so there is no need to input anything here.
+ANTHROPIC_API_KEY=PASTE_YOUR_ANTHROPIC_API_KEY_HERE
+
+MODELS='["anthropic/claude-sonnet-5-5","anthropic/claude-haiku-5-5","anthropic/claude-opus-5-5"]'
+
+MODEL_FAST=anthropic/claude-haiku-5-5
+MODEL_STANDARD=anthropic/claude-sonnet-5-5
+MODEL_CODING=anthropic/claude-sonnet-5-5
+MODEL_REASONING=anthropic/claude-opus-5-5
+```
+One registered model handles every task, `MODELS` takes precedence over `MODEL`, and settings changes require restarting PlotWorks.
 
 ## Run PlotWorks
 
@@ -241,6 +260,7 @@ ALLOW_ABSOLUTE_DATA_PATHS=true
 | Animations | `outputs/animations/` |
 | Analysis reports | `outputs/reports/` |
 | Generated code and run metadata | `outputs/code/` |
+| Model usage and latency logs | `outputs/logs/model_calls.jsonl` |
 
 Plot filenames cannot include directories. Transformation output names may use
 safe relative subfolders under `outputs/data/transformed/`.
@@ -255,12 +275,11 @@ When a plot requires transformation, `PlotWorksSupervisor` invokes a confirmatio
 outputs/data/transformed/
 ```
 
-A metadata file records the source path, source SHA-256 hash, operations, before/after shape, and output path.
+A metadata file records the source path, source SHA-256 hash, operations, before/after shape, and output path. Metadata records every contribution from an agent. Changed inputs or plans require a fresh preview, and existing output files are not overwritten.
 
 ### How the confirmation dialog works
 
-All write or custom-code execution tools are registered
-directly on `PlotWorksSupervisor`. Specialist agents preview
+All confirmation-required tools are registered directly on `PlotWorksSupervisor`. Specialist agents preview
 and validate work and return a proposal, but they do not invoke
 writes from inside an `AgentTool`.
 
@@ -290,26 +309,45 @@ aggregate
 pivot_table
 melt
 reset_index
+join / merge (inner, left, right, outer, cross, semi, anti)
+append_metadata
+concat_rows / union_all
+union_distinct
+concat_columns
+coalesce_columns
+interval_join
 ```
 
-The specialist first calls `preview_data_transformations()` and returns a
-proposal. The supervisor then invokes `save_data_transformations().
+Join previews report duplicate keys, unmatched rows, and potential row multiplication before saving.
+
+See [Multi-dataset and model configuration](docs/MULTI_DATASET_AND_MODELS.md)
+for detailed configuration, fallback behavior, execution limits, and metadata.
+
+Single-table transformations use `preview_data_transformations()` followed by
+`save_data_transformations()`. Multi-table transformations use
+`preview_bundle_transformations()` followed by `save_bundle_transformation()`.
+The supervisor presents the proposal and requests ADK confirmation before saving.
 
 ### Custom Python transformations
 
-For data preparation that cannot be expressed through the catalog, the
-agent may write:
+Custom transformations receive DataFrames through `transform_data(datasets)`.
+They can return one DataFrame or a dictionary of output DataFrames.
+`transform_data(data)` remains supported for one input.
 
 ```python
-def transform_data(data):
-    # pandas/numpy transformation logic
-    return transformed_dataframe
+def transform_data(datasets):
+    data = datasets["measurements"].copy()
+    summary = data.describe(include="all").reset_index()
+    return {"prepared": data, "summary": summary}
 ```
+Generated-code previews use `preview_generated_bundle_transform()`, followed by
+the same confirmed `save_bundle_transformation()` route.
 
-The validator blocks imports, file/network/system access, private attribute
-access, and serialization methods. The specialist returns the validated code to the
-supervisor, which invokes the execution tool. Execution occurs in a separate process. 
-This is an application-level safeguard, not a true sandbox, so generated code should still be reviewed.
+Generated Python code can use pandas/numpy and approved installed packages configured
+through `TRANSFORM_ALLOWED_IMPORTS`. Validation and runtime checks restrict file,
+network, and system access. Execution occurs in a separate process with time and
+resource limits. These are application-level safeguards. It is recommended to
+review generated code before approving execution.
 
 ## Plotting routes
 
@@ -435,4 +473,11 @@ outputs/code/custom_r_animation_runs/
 PlotWorks recognizes BED files through BED12. It treats the first three columns
 as `chrom`, `chromStart`, and `chromEnd`, and can summarize interval counts,
 lengths, scores, strands, and inferred chromosome sizes.
+
+Custom BED-like tables can instead be loaded as ordinary tables using explicit
+`loading_options`, including `format="table"`, `header`, `names`, `sep`, and
+`dtype`. This preserves supplied headers and study-specific annotation columns
+without assigning standard BED meanings to them. Genomic column roles and
+coordinate conventions must be supplied explicitly when required; automatic
+genomic schema inference remains future work.
 

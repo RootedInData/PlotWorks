@@ -68,3 +68,23 @@
   adapted to the PlotWorks data and rendering contracts.
 - Added new output directories, environment settings, dependencies,
   documentation, and tests.
+
+## Multi dataset preparation and configurable models
+
+- Add named immutable dataset bundles with workbook-sheet and folder discovery,
+  loading options, source hashes and serializable session state.
+- Add joins, concatenation, union, metadata attachment, coalescing and explicit
+  interval overlap joins with key/cardinality and row-growth diagnostics.
+- Bind transformation previews to their inputs, operations/code, output names,
+  versions and limits; publish with source checks, lineage, no-overwrite writes,
+  rollback and session receipts.
+- Extend generated Python to named multiple inputs and outputs, helper functions,
+  lambdas and approved analytical imports; retain the single-file contract.
+- Preserve DataFrame types across subprocess transfer and record managed output
+  loading schemas for reuse by existing plotting tools.
+- Add fast, standard, coding and reasoning profiles, ordered model preferences,
+  task/agent overrides, bounded availability fallback and token/latency telemetry.
+- Add PythonTransformDeveloperAgent and ReasoningAgent; reduce duplicate prompt
+  content and request concise structured specialist handoffs.
+- Preserve legacy single-model and single-file APIs; add offline ADK confirmation
+  and regression coverage plus configuration and workflow documentation.

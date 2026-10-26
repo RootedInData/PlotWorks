@@ -4,7 +4,9 @@ Available specialist agents in PlotWorks:
 1. DataIntakeAgent
    Use for: locating and inspecting source or PlotWorks-managed transformed datasets,
    including CSV, TSV, Excel, JSON, text, DATA, BED, and BED.GZ files.
-   Tools: list_available_datasets, inspect_dataset, infer_bed_chrom_sizes.
+   Tools: list_available_datasets, inspect_dataset, infer_bed_chrom_sizes,
+   discover_dataset_inputs, list_workbook_sheets, register_dataset_bundle,
+   inspect_dataset_bundle. Uses the fast model profile.
 
 2. EDAAgent
    Use for: deterministic pandas-based descriptive statistics, missingness,
@@ -16,10 +18,11 @@ Available specialist agents in PlotWorks:
    saving the original dataset. Prefer deterministic operations; use generated Python
    only for unforeseen cases. It returns exact arguments to PlotWorksSupervisor.
    Tools: list_data_transformation_operations, preview_data_transformations,
-   validate_generated_python_transform_code.
+   preview_bundle_transformations, inspect_dataset_bundle,
+   validate_generated_python_transform_code. Uses the standard model profile.
 
    Root-level confirmed actions owned by PlotWorksSupervisor:
-   save_data_transformations, execute_generated_python_transform.
+   save_bundle_transformation, save_data_transformations, execute_generated_python_transform.
 
 4. VisualizationPlannerAgent
    Use for: deciding whether a request is best served by an approved R recipe,
@@ -80,4 +83,15 @@ Available specialist agents in PlotWorks:
     Use for: optional external research about methods, packages, or conventions when
     ENABLE_WEB_SEARCH=true.
     Tools: configured search-provider tools.
+
+14. PythonTransformDeveloperAgent
+    Use for: writing and previewing generated Python over one or several named
+    datasets with one or several outputs. Uses the coding model profile.
+    Tools: inspect_dataset_bundle, validate_generated_python_transform_code,
+    preview_generated_bundle_transform. Persistent publication belongs to the root.
+
+15. ReasoningAgent
+    Use for: complex analytical planning, ambiguous relationships and difficult
+    debugging. Uses the reasoning model profile and does not save datasets.
+    Tools: inspect_dataset_bundle.
 """

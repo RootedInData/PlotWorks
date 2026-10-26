@@ -1,3 +1,4 @@
+# Uncategorized
 __pycache__/
 *.py[cod]
 .venv/
@@ -5,9 +6,13 @@ __pycache__/
 .adk/
 *private*
 
-# User source data should remain local.
+# User source data and docs should remain local.
 data/*
 !data/.gitkeep
+CHANGELOG.md
+
+# Test scripts should remain local
+tests/**
 
 # Generated PlotWorks artifacts should remain local.
 outputs/**

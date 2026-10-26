@@ -4,7 +4,15 @@ from .animation_tools import (
     render_animated_scatter,
     validate_generated_r_animation_code,
 )
-from .custom_r_plot_tools import execute_generated_r_plot, validate_generated_r_plot_code
+from .bundle_transformation_tools import (
+    preview_bundle_transformations,
+    preview_generated_bundle_transform,
+    save_bundle_transformation,
+)
+from .custom_r_plot_tools import (
+    execute_generated_r_plot,
+    validate_generated_r_plot_code,
+)
 from .data_tools import (
     create_basic_charts,
     infer_bed_chrom_sizes,
@@ -19,6 +27,12 @@ from .data_transformation_tools import (
     preview_data_transformations,
     save_data_transformations,
     validate_generated_python_transform_code,
+)
+from .dataset_bundle_tools import (
+    discover_dataset_inputs,
+    inspect_dataset_bundle,
+    list_workbook_sheets,
+    register_dataset_bundle,
 )
 from .plot_review_tools import review_plot_file
 from .pretty_plot_tools import (
@@ -55,6 +69,13 @@ from .visualization_planning_tools import (
 
 __all__ = [
     "VisualizationSpec",
+    "discover_dataset_inputs",
+    "inspect_dataset_bundle",
+    "list_workbook_sheets",
+    "register_dataset_bundle",
+    "preview_bundle_transformations",
+    "preview_generated_bundle_transform",
+    "save_bundle_transformation",
     "check_animation_setup",
     "check_publication_plot_setup",
     "create_basic_charts",
