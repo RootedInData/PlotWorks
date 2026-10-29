@@ -53,8 +53,8 @@ The supervisor agent chooses the smallest set of specialists needed for each req
 Built-in tools handle routine work, while coding specialists stand by for
 unforeseen coding requests and for creating novel R figures.
 
-`PlotWorksSupervisor` is the sole user-facing agent. Specialist agents operate behind
-the supervisor as tools. `PlotWorksSupervisor` receives the user's request, delegates tasks to specialists, 
+`PlotWorksSupervisor` is the sole user-facing agent. Specialist agents operate behind scenes as directed by the
+the supervisor. `PlotWorksSupervisor` receives the user's request, delegates tasks to specialists, 
 presents previews and proposals, and reports the final results.
 
 ## Core capabilities
@@ -63,7 +63,7 @@ PlotWorks can:
 
 - Detect CSV, TSV, Excel, JSON, text, DATA, BED, and BED.GZ files.
 - Perform joins, concatenation, unions and coalescing.
-- Run pandas-based exploratory data analysis using deterministic functions and code generated on the fly.
+- Run exploratory data analysis using built-in functions and code generated on the fly.
 - Summarize BED intervals, scores, strands, and inferred chromosome sizes.
 - Map inconsistent column names to likely semantic roles.
 - Write Python code for transforming data in unforeseen situations.
